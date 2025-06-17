@@ -1,3 +1,2 @@
-import { isObject } from '@vue/shared'
-
-console.log('isObject:', isObject({ a: 1 }))
+export * from './ref'
+export * from './effect'
