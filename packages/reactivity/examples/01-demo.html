@@ -16,8 +16,13 @@
 
         const count = ref(0)
 
+        // effect1
         effect(() => {
-            console.log(count.value) // 这个函数会在 count.value 变化时自动重新执行
+            // 🚨 effect2 在 effect1 中执行
+            effect(() => {
+                console.log('effect2', count.value)
+            })
+            console.log('effect1', count.value)
         })
 
         setTimeout(() => {
