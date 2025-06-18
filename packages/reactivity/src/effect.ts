@@ -25,12 +25,29 @@ class ReactiveEffect {
       activeSub = prevSub
     }
   }
+
+  /**
+   * 通知更新的方法，如果依赖的数据发生了变化，会调用这个函数
+   */
+  notify() {
+    this.scheduler()
+  }
+
+  /**
+   * 默认调用 run，如果用户传了，那以用户的为主，实例属性的优先级，由于原型属性
+   */
+  scheduler() {
+    this.run()
+  }
 }
 
 // effect 函数用于注册副作用函数
 // 执行传入的函数，并在执行期间自动收集依赖
-export function effect(fn) {
+export function effect(fn, options) {
   // 创建一个 ReactiveEffect 实例
   const e = new ReactiveEffect(fn)
-  e.run() // 执行 fn
+  // 将传递的属性合并到 ReactiveEffect 的实例中
+  Object.assign(e, options)
+  // 执行 run 方法，开始收集依赖
+  e.run()
 }

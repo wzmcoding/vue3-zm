@@ -16,17 +16,20 @@
 
         const count = ref(0)
 
-        // effect1
-        effect(() => {
-            // 🚨 effect2 在 effect1 中执行
-            effect(() => {
-                console.log('effect2', count.value)
-            })
-            console.log('effect1', count.value)
-        })
+        effect(
+            () => {
+                console.log('在 fn 中收集了依赖', count.value)
+            },
+            {
+                scheduler() {
+                    console.log('scheduler', count.value)
+                }
+            }
+        )
 
         setTimeout(() => {
-            count.value = 1
+            // ⭐️ 由于传递了 scheduler ，所以我们更新响应式属性的时候，会触发 scheduler
+            count.value++ // scheduler
         }, 1000)
     </script>
 </body>
