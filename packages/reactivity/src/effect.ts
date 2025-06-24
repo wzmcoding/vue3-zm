@@ -2,12 +2,24 @@
 // 我就把当前正在执行的函数，放到 activeSub 中，
 // 当然这么做只是为了我们在收集依赖的时候能找到它，
 // 如果你还是不理解，那你就把他想象成一个全局变量，这个时候如果执行 effect 那全局变量上就有一个正在执行的函数，就是 activeSub
+import { Link } from './system'
+
 export let activeSub
 
 class ReactiveEffect {
   // 表示当前是否被激活，如果为 false 则不收集依赖
   active = true
   constructor(public fn) {}
+
+  // 给 ReactiveEffect 加一个单向链表，让它在重新执行时可以找到自己之前收集到的依赖，尝试复用：
+  /**
+   * 依赖项链表的头节点
+   */
+  deps: Link | undefined
+  /**
+   * 依赖项链表的尾节点
+   */
+  depsTail: Link | undefined
 
   run() {
     // 如果当前的 effect 未激活，那就不收集依赖，直接返回 fn 执行结果
@@ -18,6 +30,8 @@ class ReactiveEffect {
     const prevSub = activeSub
     // 将当前的 effect 保存到全局，以便于收集依赖
     activeSub = this
+    // 这里在开始执行之前，我们将 depsTail 设置成 undefined
+    this.depsTail = undefined
     try {
       return this.fn()
     } finally {
