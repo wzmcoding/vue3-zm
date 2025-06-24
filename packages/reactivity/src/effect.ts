@@ -2,7 +2,7 @@
 // 我就把当前正在执行的函数，放到 activeSub 中，
 // 当然这么做只是为了我们在收集依赖的时候能找到它，
 // 如果你还是不理解，那你就把他想象成一个全局变量，这个时候如果执行 effect 那全局变量上就有一个正在执行的函数，就是 activeSub
-import { Link } from './system'
+import { endTrack, Link, startTrack } from './system'
 
 export let activeSub
 
@@ -30,12 +30,13 @@ class ReactiveEffect {
     const prevSub = activeSub
     // 将当前的 effect 保存到全局，以便于收集依赖
     activeSub = this
-    // 这里在开始执行之前，我们将 depsTail 设置成 undefined
-    this.depsTail = undefined
+    startTrack(this)
     try {
       return this.fn()
     } finally {
-      // fn 执行完毕后将 activeSub 恢复为 prevSub
+      endTrack(this)
+
+      // 执行完成后，恢复之前的 effect
       activeSub = prevSub
     }
   }
