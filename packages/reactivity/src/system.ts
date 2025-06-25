@@ -5,7 +5,7 @@ export interface Sub {
   depsTail: Link | undefined
 }
 
-export interface Dep {
+export interface Dependency {
   // 订阅者链表的头节点
   subs: Link | undefined
   // 订阅者链表的尾节点
@@ -20,7 +20,7 @@ export interface Link {
   // 上一个订阅者节点
   prevSub: Link | undefined
   // 依赖项
-  dep: Dep
+  dep: Dependency
   // 下一个依赖项节点
   nextDep: Link | undefined
 }
