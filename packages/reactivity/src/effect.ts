@@ -3,7 +3,7 @@
 // 当然这么做只是为了我们在收集依赖的时候能找到它，
 // 如果你还是不理解，那你就把他想象成一个全局变量，这个时候如果执行 effect 那全局变量上就有一个正在执行的函数，就是 activeSub
 import { endTrack, Link, startTrack } from './system'
-
+// 用来保存当前正在执行的 effect
 export let activeSub
 
 class ReactiveEffect {
@@ -65,4 +65,14 @@ export function effect(fn, options) {
   Object.assign(e, options)
   // 执行 run 方法，开始收集依赖
   e.run()
+  /**
+   * 绑定函数的 this
+   */
+  const runner = e.run.bind(e)
+
+  /**
+   * 把 effect 的实例，放到函数属性中
+   */
+  runner.effect = e
+  return runner
 }
