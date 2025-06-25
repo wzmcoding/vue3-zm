@@ -25,6 +25,9 @@ export interface Link {
   nextDep: Link | undefined
 }
 
+// 保存已经被清理掉的节点，留着复用
+let linkPool: Link
+
 /**
  * 链接链表关系
  * @param dep
@@ -46,12 +49,26 @@ export function link(dep, sub) {
   //endregion
 
   // 如果 activeSub 有，那就保存起来，等我更新的时候，触发
-  const newLink = {
-    sub,
-    nextSub: undefined,
-    prevSub: undefined,
-    dep,
-    nextDep, // 这里的 nextDep 来自于之前复用失败的依赖
+  let newLink
+
+  /**
+   * 如果 linkPool 有，那就复用 linkPool 中的节点
+   */
+  if (linkPool) {
+    newLink = linkPool
+    linkPool = linkPool.nextDep // 复用之后，linkPool 指向下一个可复用的节点
+    newLink.nextDep = nextDep // 复用的节点需要把之前的 nextDep 关联上
+    newLink.dep = dep // 复用的节点需要关联上当前的 dep
+    newLink.sub = sub // 复用的节点需要关联上当前的 sub
+  } else {
+    // 如果没有复用的节点，那就新建一个节点
+    newLink = {
+      sub,
+      nextSub: undefined,
+      prevSub: undefined,
+      dep,
+      nextDep, // 这里的 nextDep 来自于之前复用失败的依赖
+    }
   }
 
   /**
@@ -161,7 +178,11 @@ function clearTracking(link: Link) {
 
     link.dep = link.sub = undefined
 
-    link.nextDep = undefined
+    /**
+     * 把不要的节点给 linkPool，留着复用
+     */
+    link.nextDep = linkPool
+    linkPool = link
 
     link = nextDep
   }
