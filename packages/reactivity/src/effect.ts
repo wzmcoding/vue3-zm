@@ -21,6 +21,8 @@ class ReactiveEffect {
    */
   depsTail: Link | undefined
 
+  tracking = false // 避免无限循环递归
+
   run() {
     // 如果当前的 effect 未激活，那就不收集依赖，直接返回 fn 执行结果
     if (!this.active) {
