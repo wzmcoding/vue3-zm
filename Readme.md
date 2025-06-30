@@ -1,1 +1,2 @@
-## vue3源码学习仓库,手写自己的vue3,加油，奥利给！！！
+## vue3源码学习仓库,手写vue3源码
+clarify project purpose
