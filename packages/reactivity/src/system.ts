@@ -1,15 +1,24 @@
-export interface Sub {
-  // 依赖项链表的头节点
-  deps: Link | undefined
-  // 依赖项链表的尾节点
-  depsTail: Link | undefined
-}
-
+/**
+ * 依赖项
+ */
 export interface Dependency {
   // 订阅者链表的头节点
   subs: Link | undefined
   // 订阅者链表的尾节点
   subsTail: Link | undefined
+}
+
+/**
+ * 订阅者
+ */
+export interface Sub {
+  // 依赖项链表的头节点
+  deps: Link | undefined
+  // 依赖项链表的尾节点
+  depsTail: Link | undefined
+  // 是否正在追踪依赖
+  tracking: boolean
+  dirty?: boolean
 }
 
 export interface Link {
@@ -34,6 +43,10 @@ let linkPool: Link
  * @param sub
  */
 export function link(dep, sub) {
+  if (sub.depsTail?.dep === dep) {
+    return
+  }
+
   //region 尝试复用链表节点
   const currentDep = sub.depsTail
   /**
@@ -102,6 +115,19 @@ export function link(dep, sub) {
 }
 
 /**
+ * 处理 computed 更新逻辑
+ * @param computed
+ */
+function processComputedUpdate(computed) {
+  // 先标记为 脏
+
+  // 如果 subs 有，并且值变了，通知更新
+  if (computed.subs && computed.update()) {
+    propagate(computed.subs)
+  }
+}
+
+/**
  * 传播更新的函数
  * @param subs
  */
@@ -110,8 +136,13 @@ export function propagate(subs) {
   let queuedEffect = []
   while (link) {
     const sub = link.sub
-    if (!sub.tracking) {
-      queuedEffect.push(sub)
+    if (!sub.tracking && !sub.dirty) {
+      sub.dirty = true
+      if ('update' in sub) {
+        processComputedUpdate(sub)
+      } else {
+        queuedEffect.push(sub)
+      }
     }
     link = link.nextSub
   }
@@ -134,6 +165,7 @@ export function startTrack(sub) {
  */
 export function endTrack(sub) {
   sub.tracking = false
+  sub.dirty = false
   const depsTail = sub.depsTail
   /**
    * depsTail 有，并且 depsTail 还有 nextDep ，我们应该把它们的依赖关系清理掉

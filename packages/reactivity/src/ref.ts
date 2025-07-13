@@ -1,9 +1,9 @@
 import { activeSub } from './effect'
-import { Link, link, propagate } from './system'
+import { Dependency, Link, link, propagate } from './system'
 import { hasChanged, isObject } from '@vue/shared'
 import { reactive } from './reactive'
 
-enum ReactiveFlags {
+export enum ReactiveFlags {
   // 属性标记，用于表示对象是不是一个ref
   IS_REF = '__v_isRef',
 }
@@ -11,7 +11,7 @@ enum ReactiveFlags {
 /**
  * Ref的类
  */
-class RefImpl {
+class RefImpl implements Dependency {
   // 保存实际的值
   _value;
   // ref标记，证明是一个ref

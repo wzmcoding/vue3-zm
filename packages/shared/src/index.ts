@@ -9,3 +9,7 @@ export function isObject(value: unknown): value is Record<string, unknown> {
 export function hasChanged(newValue, oldValue) {
   return !Object.is(newValue, oldValue)
 }
+
+export function isFunction(value) {
+  return typeof value === 'function'
+}
