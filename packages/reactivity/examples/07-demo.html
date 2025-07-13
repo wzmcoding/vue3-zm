@@ -7,40 +7,77 @@
         body {
             padding: 150px;
         }
+        #app,
+        #dv {
+            width: 100px;
+            height: 100px;
+            background: red;
+        }
+        #dv {
+            background: #000;
+        }
     </style>
 </head>
 <body>
 <div id="app"></div>
+<div id="dv"></div>
+<button id="btn">按钮</button>
 <script type="module">
     // import {
     //   reactive,
     //   effect,
     //   watch,
+    //   ref,
     // } from '../../../node_modules/vue/dist/vue.esm-browser.prod.js'
     import { ref, watch } from '../dist/reactivity.esm.js'
 
-    const state = ref({
-        a: {
-            b: 1,
-            c: {
-                d: 1,
-            },
-        },
-    })
+    const flag = ref(true)
 
     watch(
-        () => state.value,
-        (newVal, oldVal) => {
-            console.log('newVal,oldVal ==> ', newVal, oldVal)
+        flag,
+        (newValue, oldValue, onCleanup) => {
+            const dom = newValue ? app : dv
+            function handler() {
+                console.log(newValue ? '点击了 app' : '点击了 dv')
+            }
+            dom.addEventListener('click', handler)
+            onCleanup(() => {
+                console.log('清理函数被调用了')
+                dom.removeEventListener('click', handler)
+            })
         },
         {
-            deep: 3,
+            immediate: true,
         },
     )
 
-    setTimeout(() => {
-        state.value.a.c.d = 2
-    }, 1000)
+    btn.onclick = () => {
+        flag.value = !flag.value
+    }
+
+    //
+    // const state = ref({
+    //   a: {
+    //     b: 1,
+    //     c: {
+    //       d: 1,
+    //     },
+    //   },
+    // })
+    //
+    // watch(
+    //   () => state.value,
+    //   (newVal, oldVal) => {
+    //     console.log('newVal,oldVal ==> ', newVal, oldVal)
+    //   },
+    //   {
+    //     deep: 3,
+    //   },
+    // )
+    //
+    // setTimeout(() => {
+    //   state.value.a.c.d = 2
+    // }, 1000)
 </script>
 </body>
 </html>
