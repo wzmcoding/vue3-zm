@@ -10,8 +10,8 @@ export function setActiveSub(sub) {
   activeSub = sub
 }
 
-class ReactiveEffect implements Sub {
-  // 表示当前是否被激活，如果为 false 则不收集依赖
+export class ReactiveEffect implements Sub {
+  // 表示这个 effect 是否激活
   active = true
   constructor(public fn) {}
 
@@ -62,6 +62,15 @@ class ReactiveEffect implements Sub {
    */
   scheduler() {
     this.run()
+  }
+
+  stop() {
+    if (this.active) {
+      // 清理依赖
+      startTrack(this)
+      endTrack(this)
+      this.active = false
+    }
   }
 }
 
