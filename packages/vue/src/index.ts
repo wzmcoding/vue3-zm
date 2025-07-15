@@ -1,1 +1,1 @@
-console.log('vue/index.ts');
+export * from '@vue/runtime-dom'
