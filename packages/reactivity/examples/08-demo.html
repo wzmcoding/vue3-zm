@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+    <style>
+        body {
+            padding: 150px;
+        }
+    </style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+    // import {
+    //   reactive,
+    //   effect,
+    //   watch,
+    //   ref,
+    //   toRef,
+    // } from '../../../node_modules/vue/dist/vue.esm-browser.js'
+    import {
+        effect,
+        toRef,
+        reactive,
+        toRefs,
+    } from '../dist/reactivity.esm.js'
+
+    const Comp = {
+        template: '<div>{{state.count.value}}</div>',
+        setup() {
+            const state = reactive({
+                count: 0,
+                name: '张三',
+                age: 18,
+            })
+            // let { count } = state
+
+            return {
+                ...toRefs(state),
+            }
+        },
+    }
+
+    // // console.log(count)
+    // effect(() => {
+    //   console.log(state1.name)
+    // })
+    //
+    // setTimeout(() => {
+    //   // count.value++
+    //   // state.count++
+    //   // name.value = '远方'
+    //   state.name = '远方'
+    // }, 1000)
+
+    function fn(el) {
+        el.setAttribute()
+    }
+</script>
+</body>
+</html>
