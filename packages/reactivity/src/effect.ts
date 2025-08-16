@@ -25,7 +25,7 @@ export class ReactiveEffect implements Sub {
    */
   depsTail: Link | undefined
 
-  dirty = true
+  dirty = false
 
   tracking = false // 避免无限循环递归
 
