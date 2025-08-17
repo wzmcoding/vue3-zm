@@ -16,10 +16,9 @@ export function patchStyle(el, prevValue, nextValue) {
      * 现在是 {  color: 'blue' }
      */
     for (const key in prevValue) {
-      if (!(key in nextValue)) {
-        style[key] = ''
+      if (nextValue?.[key] == null) {
+        style[key] = null
       }
     }
   }
-  console.log(el, prevValue, nextValue)
 }

@@ -1,5 +1,9 @@
 import { isString, ShapeFlags } from '@vue/shared'
 
+export function isSameVNodeType(n1, n2) {
+  return n1.type === n2.type && n1.key === n2.key
+}
+
 /**
  * 判断是否为虚拟节点，根据 __v_isVNode 属性
  * @param value
@@ -14,7 +18,7 @@ export function isVNode(value) {
  * @param props 节点的属性
  * @param children 子节点
  */
-export function createVNode(type, props?, children?) {
+export function createVNode(type, props?, children = null) {
   let shapeFlag
 
   if (isString(type)) {
