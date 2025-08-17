@@ -12,7 +12,7 @@
         createRenderer,
     } from '../../../node_modules/vue/dist/vue.esm-browser.js'
 
-    import { nodeOps } from '../dist/vue.esm.js'
+    import { renderOptions } from '../dist/vue.esm.js'
     /**
      * vue 通过渲染器，将虚拟节点，转换成真实 DOM ，最终渲染到页面上
      *
@@ -31,11 +31,25 @@
      * vue 包 导出了 runtime-dom
      */
 
-    const renderer = createRenderer(nodeOps)
+    const renderer = createRenderer(renderOptions)
 
-    const vnode = h('div', 'hello world')
+    // const vnode = h('div', { class: 'container' }, 'hello world')
+    // const vnode2 = h('div', { style: { background: 'black', color: 'yellow' } }, 'hello world')
+
+
+    // const vnode = h('div', { onClick() { console.log('触发点击事件') } }, 'hello world')
+    // const vnode2 = h('div', { onClick() { console.log('事件更新了') } }, 'hello world')
+    // const vnode2 = h('div', { }, 'hello world')
+
+
+    const vnode = h('div', { id: 'aaa', bcd: '123' }, 'hello world')
+    const vnode2 = h('div', { id: 'bbb' }, 'hello world')
 
     renderer.render(vnode, app)
+    // 更新操作
+    setTimeout(() => {
+        renderer.render(vnode2, app)
+    }, 1000)
 </script>
 </body>
 </html>
