@@ -11,6 +11,7 @@
  * 8. h('div', { class: 'container' },[h('span', 'hello'), h('span', 'world')]) 和 7 一个意思
  */
 import { isArray, isObject } from '@vue/shared'
+import { createVNode, isVNode } from './vnode'
 
 export function h(type, propsOrChildren?, children?) {
   /**
@@ -54,32 +55,3 @@ export function h(type, propsOrChildren?, children?) {
   }
 }
 
-/**
- * 判断是否为虚拟节点，根据 __v_isVNode 属性
- * @param value
- */
-function isVNode(value) {
-  return value?.__v_isVNode
-}
-
-/**
- * 创建虚拟节点的底层方法
- * @param type 节点类型
- * @param props 节点的属性
- * @param children 子节点
- */
-function createVNode(type, props?, children?) {
-  const vnode = {
-    __v_isVNode: true, // 标记是虚拟节点
-    type,
-    props,
-    children,
-    // 做 diff 用的
-    key: props?.key,
-    // 虚拟节点要挂载的元素
-    el: null,
-    shapeFlag: 9,
-  }
-
-  return vnode
-}
