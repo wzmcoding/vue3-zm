@@ -102,6 +102,11 @@ export function createRenderer(options) {
      *      c1 => [a, b]
      *      c2 => [c, a, b]
      *      开始时： i= 0, e1= 1, e2= 2
+     *  2. 乱序 diff
+     *      c1 => [a, (b, c, d), e]
+     *      c2 => [a, (c, d, b), e]
+     *      开始时： i= 0, e1= 4, e2= 4
+     *      双端对比完结果： i= 1, e1= 3, e2= 3
      */
 
     // 开始对比的下标
@@ -166,6 +171,76 @@ export function createRenderer(options) {
       while (i <= e1) {
         unmount(c1[i])
         i++
+      }
+    } else {
+      /**
+       *    2. 乱序 diff
+       *      c1 => [a, (b, c, d), e]
+       *      c2 => [a, (c, d, b), e]
+       *      开始时： i= 0, e1= 4, e2= 4
+       *      双端对比完结果： i= 1, e1= 3, e2= 3
+       *      找到 key 相同的虚拟节点，让他们 patch
+       */
+      console.log('开始乱序 diff')
+      // 老的子节点开始查找的位置
+      let s1 = i
+      // 新的子节点开始查找的位置
+      let s2 = i
+
+      /**
+       * 做一份新的子节点的 key 和 index 的映射关系
+       * map = {
+       *   c: 1,
+       *   d: 2,
+       *   b: 3,
+       * }
+       */
+      const keyToNewIndexMap = new Map()
+
+      /**
+       * 遍历新的 s2 - e2 之间，这些是还没更新的，做一份 key => index  map
+       */
+      for (let j = s2; j <= e2; j++) {
+        const n2 = c2[j]
+        keyToNewIndexMap.set(n2.key, j)
+      }
+      console.log('keyToNewIndexMap ->', keyToNewIndexMap)
+
+      /**
+       * 遍历老的子节点
+       */
+      for (let j = s1; j <= e1; j++) {
+        const n1 = c1[j]
+        // 看一下这个 key 在新的里面有没有
+        const newIndex = keyToNewIndexMap.get(n1.key)
+
+        if (newIndex != null) {
+          // 如果有，就patch
+          patch(n1, c2[newIndex], container)
+        } else {
+          // 如果没有， 说明老的有，新的没有，需要卸载
+          unmount(n1)
+        }
+      }
+
+      /**
+       * 遍历新的子元素， 调整顺序
+       */
+
+      for (let j = e2; j >= s2; j--) {
+        /**
+         * 倒序插入
+         */
+        const n2 = c2[j]
+        // 拿到它的下一个子元素
+        const anchor = c2[j + 1]?.el || null
+        if (n2.el) {
+          // 依次进行倒序插入，保证顺序的一致性
+          hostInsert(n2.el, container, anchor)
+        } else {
+          // 表示老的没有，新的有，挂载新的
+          patch(null, n2, container, anchor)
+        }
       }
     }
     console.log('i,e1,e2->', i, e1, e2)
