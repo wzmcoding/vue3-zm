@@ -374,3 +374,73 @@ export function createRenderer(options) {
     render,
   }
 }
+
+/**
+ * 求最长递增子序列
+ */
+function getSequence(arr) {
+  const result = []
+  // 记录前驱节点
+  const map = new Map()
+
+  for (let i = 0; i < arr.length; i++) {
+    const item = arr[i]
+    // -1 不在计算范围内
+    if (item === -1 || item === undefined) continue
+
+    if (result.length === 0) {
+      // 如果 result 里面一个都没有，把当前的索引放进去
+      result.push(i)
+      continue
+    }
+
+    const lastIndex = result[result.length - 1]
+    const lastItem = arr[lastIndex]
+
+    if (item > lastItem) {
+      // 如果当前这一项大于上一个，那么就直接把索引放到 result 中
+      result.push(i)
+      // 记录前驱节点
+      map.set(i, lastIndex)
+      continue
+    }
+    // item 小于 lastItem
+
+    let left = 0
+    let right = result.length - 1
+
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2)
+      // 拿到中间项
+      const midItem = arr[result[mid]]
+      if (midItem < item) {
+        left = mid + 1
+      } else {
+        right = mid
+      }
+    }
+
+    if (arr[result[left]] > item) {
+      if (left > 0) {
+        // 记录前驱节点
+        map.set(i, result[left - 1])
+      }
+      // 找到最合适的，把索引替换进去
+      result[left] = i
+    }
+  }
+
+  // 反向追溯
+  let l = result.length
+  let last = result[l - 1]
+
+  while (l > 0) {
+    l--
+    // 纠正顺序
+    result[l] = last
+    // 去前驱节点里面找
+    last = map.get(last)
+  }
+
+  return result
+}
