@@ -197,6 +197,10 @@ export function createRenderer(options) {
        */
       const keyToNewIndexMap = new Map()
 
+      // 创建一个 newIndexToOldIndexMap, 用来记录新的子节点的 index 和 老的子节点的 index 的关系
+      const newIndexToOldIndexMap = new Array(e2 - s2 + 1)
+      newIndexToOldIndexMap.fill(-1) // 如果是 -1， 表示不在 patch 范围内，有可能是新增的，新的有，老的没有，不需要计算
+
       /**
        * 遍历新的 s2 - e2 之间，这些是还没更新的，做一份 key => index  map
        */
@@ -205,6 +209,10 @@ export function createRenderer(options) {
         keyToNewIndexMap.set(n2.key, j)
       }
       console.log('keyToNewIndexMap ->', keyToNewIndexMap)
+
+      let pos = -1
+      // 是否需要移动
+      let moved = false
 
       /**
        * 遍历老的子节点
@@ -215,6 +223,14 @@ export function createRenderer(options) {
         const newIndex = keyToNewIndexMap.get(n1.key)
 
         if (newIndex != null) {
+          if (newIndex > pos) {
+            // 如果每一次都是比上一次的大，表示就是连续递增的, 不需要算
+            pos = newIndex
+          } else {
+            // 如果新的 index 比老的 index 小，说明需要移动
+            moved = true
+          }
+          newIndexToOldIndexMap[newIndex] = j
           // 如果有，就patch
           patch(n1, c2[newIndex], container)
         } else {
@@ -222,7 +238,19 @@ export function createRenderer(options) {
           unmount(n1)
         }
       }
+      console.log('newIndexToOldIndexMap ->', newIndexToOldIndexMap)
+      // 最长递增子序列
 
+      if (moved) {
+        console.log('moved 需要计算')
+      } else {
+        console.log('不需要计算')
+      }
+      // 如果 moved 为 false,表示不需要移动，就别计算了
+      const newIndexSequence = moved ? getSequence(newIndexToOldIndexMap) : []
+      console.log('最长递增子序列 不用动 newIndexSequence->', newIndexSequence)
+      // 换成 Set, 性能好一点
+      const sequenceSet = new Set(newIndexSequence)
       /**
        * 遍历新的子元素， 调整顺序
        */
@@ -235,8 +263,13 @@ export function createRenderer(options) {
         // 拿到它的下一个子元素
         const anchor = c2[j + 1]?.el || null
         if (n2.el) {
-          // 依次进行倒序插入，保证顺序的一致性
-          hostInsert(n2.el, container, anchor)
+          if (moved) {
+            // 如果下标 j 不在最长递增子序列中，，表示需要移动
+            if (!sequenceSet.has(j)) {
+              // 依次进行倒序插入，保证顺序的一致性
+              hostInsert(n2.el, container, anchor)
+            }
+          }
         } else {
           // 表示老的没有，新的有，挂载新的
           patch(null, n2, container, anchor)
@@ -377,6 +410,8 @@ export function createRenderer(options) {
 
 /**
  * 求最长递增子序列
+ * 目的就是 减少dom移动的次数
+ * 如果一开始，新的，老的顺序本来就是递增的，那么就不用计算了
  */
 function getSequence(arr) {
   const result = []
