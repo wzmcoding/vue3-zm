@@ -1,5 +1,6 @@
 import { ShapeFlags } from '@vue/shared'
 import { isSameVNodeType, normalizeVNode, Text } from './vnode'
+import { createAppAPI } from './apiCreateApp'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -445,6 +446,7 @@ export function createRenderer(options) {
 
   return {
     render,
+    createApp: createAppAPI(render),
   }
 }
 
