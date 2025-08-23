@@ -14,8 +14,11 @@
     // } from '../../../node_modules/vue/dist/vue.esm-browser.js'
     import { h, render, Text } from '../dist/vue.esm.js'
 
-    const vnode1 = h('div', null, ['hello', 'world'])
+    // const vnode1 = h(Text, null, 'hello world')
+    // const vnode2 = h(Text, null, ['world', 'hello'])
 
+    const vnode1 = h('div', null, ['hello', 'world'])
+    // const vnode2 = h(Text, null, ['world', 'hello'])
     const vnode2 = h('div', null, ['world', 'hello'])
 
     render(vnode1, app)
