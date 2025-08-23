@@ -2,6 +2,7 @@ import { ShapeFlags } from '@vue/shared'
 import { isSameVNodeType, normalizeVNode, Text } from './vnode'
 import { createAppAPI } from './apiCreateApp'
 import { createComponentInstance, setupComponent } from './component'
+import { ReactiveEffect } from '@vue/reactivity'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -401,10 +402,31 @@ export function createRenderer(options) {
     const instance = createComponentInstance(vnode, container, anchor)
     // 初始化组件状态
     setupComponent(instance)
-    // 调用 render 拿到 subTree, this 先指向 setupState
-    const subTree = instance.render.call(instance.setupState)
-    // 将 subTree 挂载到页面
-    patch(null, subTree, container, anchor)
+
+    const componentUpdateFn = () => {
+      /**
+       * 区分挂载和更新
+       */
+      if (!instance.isMounted) {
+        // 挂载
+        // 调用 render 拿到 subTree, this 先指向 setupState
+        const subTree = instance.render.call(instance.setupState)
+        // 将 subTree 挂载到页面
+        patch(null, subTree, container, anchor)
+        // 保存子树
+        instance.subTree = subTree
+        instance.isMounted = true
+      } else {
+        // 更新
+        const preSubTree = instance.subTree
+        const subTree = instance.render.call(instance.setupState)
+        patch(preSubTree, subTree, container, anchor)
+        instance.subTree = subTree
+      }
+    }
+
+    const effect = new ReactiveEffect(componentUpdateFn)
+    effect.run()
   }
 
   /**
