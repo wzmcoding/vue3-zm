@@ -1,5 +1,5 @@
 import { ShapeFlags } from '@vue/shared'
-import { isSameVNodeType } from './vnode'
+import { isSameVNodeType, normalizeVNode, Text } from './vnode'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -125,7 +125,7 @@ export function createRenderer(options) {
      */
     while (i <= e1 && i <= e2) {
       const n1 = c1[i]
-      const n2 = c2[i]
+      const n2 = (c2[i] = normalizeVNode(c2[i]))
       if (isSameVNodeType(n1, n2)) {
         // 如果 n1 和 n2 是同一个类型的子节点，那就可以更新, 更新完了之后，对比下一个
         patch(n1, n2, container)
@@ -144,7 +144,7 @@ export function createRenderer(options) {
      */
     while (i <= e1 && i <= e2) {
       const n1 = c1[e1]
-      const n2 = c2[e2]
+      const n2 = (c2[e2] = normalizeVNode(c2[e2]))
       if (isSameVNodeType(n1, n2)) {
         // 如果 n1 和 n2 是同一个类型的子节点，那就可以更新， 更新完了之后，对比上一个
         patch(n1, n2, container)
@@ -163,7 +163,7 @@ export function createRenderer(options) {
       const anchor = nextPos < c2.length ? c2[nextPos].el : null
       console.log('anchor->', anchor)
       while (i <= e2) {
-        patch(null, c2[i], container, anchor)
+        patch(null, (c2[i] = normalizeVNode(c2[i])), container, anchor)
         i++
       }
     } else if (i > e2) {
@@ -205,7 +205,7 @@ export function createRenderer(options) {
        * 遍历新的 s2 - e2 之间，这些是还没更新的，做一份 key => index  map
        */
       for (let j = s2; j <= e2; j++) {
-        const n2 = c2[j]
+        const n2 = (c2[j] = normalizeVNode(c2[j]))
         keyToNewIndexMap.set(n2.key, j)
       }
       console.log('keyToNewIndexMap ->', keyToNewIndexMap)
@@ -319,7 +319,8 @@ export function createRenderer(options) {
   // 挂载子元素
   const mountChildren = (children, el) => {
     for (let i = 0; i < children.length; i++) {
-      const child = children[i]
+      // 进行标准化 vnode
+      const child = (children[i] = normalizeVNode(children[i]))
       patch(null, child, el)
     }
   }
@@ -356,6 +357,35 @@ export function createRenderer(options) {
   }
 
   /**
+   * 处理元素的挂载和更新
+   */
+  const processElement = (n1, n2, container, anchor) => {
+    if (n1 == null) {
+      // 挂载
+      mountElement(n2, container, anchor)
+    } else {
+      // 更新
+      patchElement(n1, n2)
+    }
+  }
+
+  /**
+   * 处理文本的挂载和更新
+   */
+  const processText = (n1, n2, container, anchor) => {
+    if (n1 == null) {
+      // 挂载
+      hostInsert((n2.el = hostCreateText(n2.children)), container, anchor)
+    } else {
+      // 更新
+      const el = (n2.el = n1.el)
+      if (n2.children !== n1.children) {
+        hostSetElementText(el, n2.children)
+      }
+    }
+  }
+
+  /**
    * 更新和挂载，都用这个函数
    * @param n1 老节点，之前的，如果有，表示要和 n2 做 diff,更新，如果没有，表示直接挂载n2
    * @param n2 新节点
@@ -373,12 +403,22 @@ export function createRenderer(options) {
       n1 = null // 置空 n1, 挂载新的 n2
     }
 
-    if (n1 == null) {
-      // 挂载
-      mountElement(n2, container, anchor)
-    } else {
-      // 更新
-      patchElement(n1, n2)
+    /**
+     * 元素，文本，组件
+     */
+    const { shapeFlag, type } = n2
+    switch (type) {
+      case Text:
+        // 处理文本
+        processText(n1, n2, container, anchor)
+        break
+      default:
+        if (shapeFlag & ShapeFlags.ELEMENT) {
+          // 处理 dom 元素 div, p, span
+          processElement(n1, n2, container, anchor)
+        } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          // TODO 处理组件
+        }
     }
   }
 

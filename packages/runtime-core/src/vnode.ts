@@ -1,7 +1,20 @@
-import { isString, ShapeFlags } from '@vue/shared'
+import { isNumber, isString, ShapeFlags } from '@vue/shared'
+
+/**
+ * 文本节点标记
+ */
+export const Text = Symbol('v-txt')
 
 export function isSameVNodeType(n1, n2) {
   return n1.type === n2.type && n1.key === n2.key
+}
+
+export function normalizeVNode(vnode) {
+  if (isString(vnode) || isNumber(vnode)) {
+    // 如果是字符串或者数字，则创建文本节点
+    return createVNode(Text, null, String(vnode))
+  }
+  return vnode
 }
 
 /**
@@ -19,7 +32,7 @@ export function isVNode(value) {
  * @param children 子节点
  */
 export function createVNode(type, props?, children = null) {
-  let shapeFlag
+  let shapeFlag = 0
 
   if (isString(type)) {
     shapeFlag = ShapeFlags.ELEMENT

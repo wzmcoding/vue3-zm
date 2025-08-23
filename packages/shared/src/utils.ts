@@ -23,3 +23,7 @@ export const isArray = Array.isArray
 export function isString(value) {
   return typeof value === 'string'
 }
+
+export function isNumber(value) {
+  return typeof value === 'number'
+}
