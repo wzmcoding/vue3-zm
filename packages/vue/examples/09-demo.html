@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <button id="btn">count++</button>
+    <script type="module">
+      import { ref, h, createApp } from '../dist/vue.esm.js'
+
+      /**
+       * 属性：
+       * 1.props
+       * 2.attrs
+       */
+      const Comp = {
+        // props: ['msg']
+        props: {
+          msg: String,
+        },
+        setup(props, { attrs }) {
+          console.log('props', props)
+          console.log('attrs', attrs)
+          return {}
+        },
+
+        render() {
+          return h('div', 'hello world')
+        },
+      }
+
+      createApp(Comp, { msg: 'hello', count: 0 }).mount('#app')
+    </script>
+  </body>
+</html>
