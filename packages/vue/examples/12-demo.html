@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { ref, h, createApp, nextTick } from '../dist/vue.esm.js'
+
+      const Children = {
+        setup(props, { emit }) {
+          return () => {
+            return h(
+              'button',
+              {
+                onClick() {
+                  emit('foo', 1, 2, 3)
+                },
+              },
+              '我是子组件的按钮',
+            )
+          }
+        },
+      }
+
+      const Comp = {
+        setup() {
+          return () => {
+            return h('div', [
+              h('p', '我是父组件的p标签'),
+              h(Children, {
+                onFoo(a, b, c) {
+                  console.log('我是父组件传递的事件', a, b, c)
+                },
+              }),
+            ])
+          }
+        },
+      }
+
+      createApp(Comp).mount('#app')
+    </script>
+  </body>
+</html>
