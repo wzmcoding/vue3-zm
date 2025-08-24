@@ -112,7 +112,6 @@ const publicInstanceProxyHandlers = {
 
 function setupStatefulComponent(instance) {
   const { type } = instance
-  console.log('instance->', instance)
 
   /**
    * 创建代理对象，内部访问 setupState props $attrs $slots $refs
@@ -122,7 +121,17 @@ function setupStatefulComponent(instance) {
   if (isFunction(type.setup)) {
     const setupContext = createSetupContext(instance)
     instance.setupContext = setupContext
+    /**
+     * 设置当前组件实例
+     */
+    setCurrentInstance(instance)
+    // 执行 setup 函数
     const setupResult = type.setup(instance.props, setupContext)
+
+    /**
+     * 清除当前组件实例
+     */
+    unsetCurrentInstance()
 
     handleSetupResult(instance, setupResult)
   }
@@ -170,4 +179,31 @@ function emit(instance, event, ...args) {
   if (isFunction(handler)) {
     handler(...args)
   }
+}
+
+/**
+ * 当前组件实例
+ */
+
+let currentInstance = null
+
+/**
+ * 设置当前组件实例
+ */
+export function setCurrentInstance(instance) {
+  currentInstance = instance
+}
+
+/**
+ * 获取当前组件实例
+ */
+export function getCurrentInstance() {
+  return currentInstance
+}
+
+/**
+ * 清除
+ */
+export function unsetCurrentInstance() {
+  currentInstance = null
 }
