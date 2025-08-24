@@ -1,4 +1,10 @@
-import { isNumber, isObject, isString, ShapeFlags } from '@vue/shared'
+import {
+  isFunction,
+  isNumber,
+  isObject,
+  isString,
+  ShapeFlags,
+} from '@vue/shared'
 
 /**
  * 文本节点标记
@@ -29,10 +35,38 @@ export function isVNode(value) {
  * 标准化子节点
  * @param children
  */
-function normalizeChildren(children) {
-  if (isNumber(children)) {
+function normalizeChildren(vnode, children) {
+  let { shapeFlag } = vnode
+  if (Array.isArray(children)) {
+    shapeFlag |= ShapeFlags.ARRAY_CHILDREN
+  } else if (isObject(children)) {
+    /**
+     * children 是对象
+     * {
+     *   header: () => h('div','hello world')
+     * }
+     */
+    if (shapeFlag & ShapeFlags.COMPONENT) {
+      // 如果是个组件，那么children 是 slots
+      shapeFlag |= ShapeFlags.SLOTS_CHILDREN
+    }
+  } else if (isFunction(children)) {
+    // children 是函数
+    if (shapeFlag & ShapeFlags.COMPONENT) {
+      // 如果是个组件，那么children 是 slots
+      shapeFlag |= ShapeFlags.SLOTS_CHILDREN
+      children = { default: children }
+    }
+  } else if (isNumber(children) || isString(children)) {
     children = String(children)
+    shapeFlag |= ShapeFlags.TEXT_CHILDREN
   }
+
+  /**
+   * 处理完了，重新赋值
+   */
+  vnode.shapeFlag = shapeFlag
+  vnode.children = children
   return children
 }
 
@@ -45,20 +79,12 @@ function normalizeChildren(children) {
 export function createVNode(type, props?, children = null) {
   let shapeFlag = 0
 
-  children = normalizeChildren(children)
-
   if (isString(type)) {
     // div p sapn
     shapeFlag = ShapeFlags.ELEMENT
   } else if (isObject(type)) {
     // 有状态的组件
     shapeFlag = ShapeFlags.STATEFUL_COMPONENT
-  }
-
-  if (isString(children)) {
-    shapeFlag |= ShapeFlags.TEXT_CHILDREN
-  } else if (Array.isArray(children)) {
-    shapeFlag |= ShapeFlags.ARRAY_CHILDREN
   }
 
   const vnode = {
@@ -72,6 +98,8 @@ export function createVNode(type, props?, children = null) {
     el: null,
     shapeFlag,
   }
+
+  normalizeChildren(vnode, children)
 
   return vnode
 }
