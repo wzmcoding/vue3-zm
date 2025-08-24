@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <button id="btn">过年了</button>
+    <script type="module">
+      import { ref, h, createApp, nextTick } from '../dist/vue.esm.js'
+
+      const Children = {
+        props: ['age'],
+        setup(props) {
+          return () => {
+            return h('div', ['我是子组件', '我的年龄是', props.age])
+          }
+        },
+      }
+
+      const Comp = {
+        setup(props) {
+          const age = ref(18)
+          btn.onclick = () => {
+            age.value++
+          }
+          return () => {
+            return h(Children, { age: age.value })
+          }
+        },
+      }
+
+      createApp(Comp).mount('#app')
+    </script>
+  </body>
+</html>
