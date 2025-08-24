@@ -31,6 +31,8 @@ export function createComponentInstance(vnode, container, anchor) {
   instance.ctx = {
     _: instance,
   }
+  // instance.emit = (event, ...args) => emit(instance, event, ...args)
+  instance.emit = emit.bind(null, instance)
   return instance
 }
 
@@ -50,6 +52,7 @@ export function setupComponent(instance) {
 
 const publicPropertiesMap = {
   $el: instance => instance.vnode.el,
+  $emit: instance => instance.emit,
   $attrs: instance => instance.attrs,
   $slots: instance => instance.slots,
   $refs: instance => instance.refs,
@@ -143,5 +146,19 @@ function createSetupContext(instance) {
     get attrs() {
       return instance.attrs
     },
+    emit(event, ...args) {
+      emit(instance, event, ...args)
+    },
+  }
+}
+
+/**
+ * 处理组件传递的事件
+ */
+function emit(instance, event, ...args) {
+  const eventName = `on${event[0].toUpperCase()}${event.slice(1)}`
+  const handler = instance.vnode.props[eventName]
+  if (isFunction(handler)) {
+    handler(...args)
   }
 }
