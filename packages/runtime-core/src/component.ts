@@ -1,6 +1,7 @@
 import { proxyRefs } from '@vue/reactivity'
 import { initProps, normalizePropsOptions } from './componentProps'
 import { hasOwn, isFunction, isObject } from '@vue/shared'
+import { nextTick } from './scheduler'
 
 /**
  * 创建组件实例
@@ -52,7 +53,10 @@ const publicPropertiesMap = {
   $slots: instance => instance.slots,
   $refs: instance => instance.refs,
   $nextTick: instance => {
-    // TODO nextTick
+    return nextTick.bind(instance)
+  },
+  $forceUpdate: instance => {
+    return () => instance.update()
   },
 }
 

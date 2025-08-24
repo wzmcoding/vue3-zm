@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <button id="btn">count++</button>
+    <script type="module">
+      import { ref, h, createApp, nextTick } from '../dist/vue.esm.js'
+
+      /**
+       * 属性：
+       * 1.props
+       * 2.attrs
+       */
+      const Comp = {
+        // props: ['msg']
+        props: {
+          msg: String,
+        },
+        setup(props, { attrs }) {
+          console.log('props', props)
+          console.log('attrs', attrs)
+          const count = ref(0)
+          const msg = ref('hello')
+          btn.onclick = () => {
+            count.value++
+            count.value++
+            count.value++
+          }
+          return function () {
+            this.$nextTick(() => {
+              const container = document.querySelector('#container')
+              nextTick(() => {
+                console.log('nextTick dom内容', container.textContent)
+              })
+            })
+            return h('div', { id: 'container' }, count.value)
+          }
+        },
+
+        // render() {
+        //   // return h('div', this.msg)
+        //   // return h('div', this.$attrs)
+        //   return h(
+        //     'div',
+        //     {
+        //       onClick: () => {
+        //         this.count++
+        //       },
+        //     },
+        //     this.count,
+        //   )
+        // },
+      }
+
+      createApp(Comp, { msg: 'hello' }).mount('#app')
+    </script>
+  </body>
+</html>
