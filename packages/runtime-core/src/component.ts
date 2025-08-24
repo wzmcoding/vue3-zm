@@ -2,6 +2,7 @@ import { proxyRefs } from '@vue/reactivity'
 import { initProps, normalizePropsOptions } from './componentProps'
 import { hasOwn, isFunction, isObject } from '@vue/shared'
 import { nextTick } from './scheduler'
+import { initSlots } from './componentSlots'
 
 /**
  * 创建组件实例
@@ -18,6 +19,7 @@ export function createComponentInstance(vnode, container, anchor) {
      */
     propsOptions: normalizePropsOptions(type.props),
     attrs: {},
+    // 组件的插槽
     slots: {},
     refs: {},
     // 组件是否挂载
@@ -42,11 +44,14 @@ export function createComponentInstance(vnode, container, anchor) {
 export function setupComponent(instance) {
   /**
    * 初始化属性
-   */
-  initProps(instance)
-  /**
+   * 初始化插槽
    * 初始化状态
    */
+  // 初始化属性
+  initProps(instance)
+  // 初始化插槽
+  initSlots(instance)
+  // 初始化状态
   setupStatefulComponent(instance)
 }
 
@@ -143,12 +148,16 @@ function handleSetupResult(instance, setupResult) {
  */
 function createSetupContext(instance) {
   return {
+    // 除了 props 之外的属性
     get attrs() {
       return instance.attrs
     },
+    // 处理事件
     emit(event, ...args) {
       emit(instance, event, ...args)
     },
+    // 插槽
+    slots: instance.slots,
   }
 }
 

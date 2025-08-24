@@ -6,6 +6,7 @@ import { ReactiveEffect } from '@vue/reactivity'
 import { queueJob } from './scheduler'
 import { shouldUpdateComponent } from './componentRenderUtils'
 import { updateProps } from './componentProps'
+import { updateSlots } from './componentSlots'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -397,12 +398,17 @@ export function createRenderer(options) {
      * 更新 props
      * 更新 slots
      */
-
     // 更新虚拟节点
     instance.vnode = nextVNode
     instance.next = null
-    // 更新组件的属性
+    /**
+     * 更新组件的属性
+     */
     updateProps(instance, nextVNode)
+    /**
+     * 更新组件的 slots
+     */
+    updateSlots(instance, nextVNode)
   }
 
   const setupRenderEffect = (instance, container, anchor) => {
