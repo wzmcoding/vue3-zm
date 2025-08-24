@@ -409,8 +409,9 @@ export function createRenderer(options) {
        */
       if (!instance.isMounted) {
         // 挂载
-        // 调用 render 拿到 subTree, this 先指向 setupState
-        const subTree = instance.render.call(instance.setupState)
+        // 调用 render 拿到 subTree, this 先指向 setupState,后面指向proxy,因为要访问this.xxx
+        // const subTree = instance.render.call(instance.setupState)
+        const subTree = instance.render.call(instance.proxy)
         // 将 subTree 挂载到页面
         patch(null, subTree, container, anchor)
         // 保存子树
@@ -419,7 +420,7 @@ export function createRenderer(options) {
       } else {
         // 更新
         const preSubTree = instance.subTree
-        const subTree = instance.render.call(instance.setupState)
+        const subTree = instance.render.call(instance.proxy)
         patch(preSubTree, subTree, container, anchor)
         instance.subTree = subTree
       }
