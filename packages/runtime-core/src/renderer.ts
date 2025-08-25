@@ -7,6 +7,7 @@ import { queueJob } from './scheduler'
 import { shouldUpdateComponent } from './componentRenderUtils'
 import { updateProps } from './componentProps'
 import { updateSlots } from './componentSlots'
+import { LifecycleHooks, triggerHooks } from './apiLifecycle'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -417,8 +418,14 @@ export function createRenderer(options) {
        * 区分挂载和更新
        */
       if (!instance.isMounted) {
+        // 挂载的逻辑
         const { vnode, render } = instance
-        // 挂载
+
+        /**
+         * 挂载前，触发 beforeMount
+         */
+        triggerHooks(instance, LifecycleHooks.BEFORE_MOUNT)
+
         // 调用 render 拿到 subTree, this 先指向 setupState,后面指向proxy,因为要访问this.xxx
         // const subTree = instance.render.call(instance.setupState)
         const subTree = render.call(instance.proxy)
