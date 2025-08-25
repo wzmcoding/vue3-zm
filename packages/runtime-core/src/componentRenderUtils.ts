@@ -1,3 +1,8 @@
+import {
+  setCurrentRenderingInstance,
+  unsetCurrentRenderingInstance,
+} from './component'
+
 function hasPropsChanged(prevProps, nextProps) {
   const nextKeys = Object.keys(nextProps)
   if (nextKeys.length !== Object.keys(prevProps).length) {
@@ -39,4 +44,11 @@ export function shouldUpdateComponent(n1, n2) {
    * 老的有，新的也有，需要更新
    */
   return hasPropsChanged(prevProps, nextProps)
+}
+
+export function renderComponentRoot(instance) {
+  setCurrentRenderingInstance(instance)
+  const subTree = instance.render.call(instance.proxy)
+  unsetCurrentRenderingInstance()
+  return subTree
 }

@@ -1,13 +1,22 @@
 import { ShapeFlags } from '@vue/shared'
 import { isSameVNodeType, normalizeVNode, Text } from './vnode'
 import { createAppAPI } from './apiCreateApp'
-import { createComponentInstance, setupComponent } from './component'
+import {
+  createComponentInstance,
+  setCurrentRenderingInstance,
+  setupComponent,
+  unsetCurrentRenderingInstance,
+} from './component'
 import { ReactiveEffect } from '@vue/reactivity'
 import { queueJob } from './scheduler'
-import { shouldUpdateComponent } from './componentRenderUtils'
+import {
+  renderComponentRoot,
+  shouldUpdateComponent,
+} from './componentRenderUtils'
 import { updateProps } from './componentProps'
 import { updateSlots } from './componentSlots'
 import { LifecycleHooks, triggerHooks } from './apiLifecycle'
+import { setRef } from './renderTemplateRef'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -328,7 +337,7 @@ export function createRenderer(options) {
 
   // 卸载
   const unmount = vnode => {
-    const { type, shapeFlag, children } = vnode
+    const { type, shapeFlag, children, ref } = vnode
     if (shapeFlag & ShapeFlags.COMPONENT) {
       // 组件
       unmountComponent(vnode.component)
@@ -337,6 +346,10 @@ export function createRenderer(options) {
       unmountChildren(children)
     }
     hostRemove(vnode.el)
+
+    if (ref != null) {
+      setRef(ref, null)
+    }
   }
 
   // 挂载子元素
@@ -443,7 +456,8 @@ export function createRenderer(options) {
 
         // 调用 render 拿到 subTree, this 先指向 setupState,后面指向proxy,因为要访问this.xxx
         // const subTree = instance.render.call(instance.setupState)
-        const subTree = render.call(instance.proxy)
+        // const subTree = render.call(instance.proxy)
+        const subTree = renderComponentRoot(instance)
         // 将 subTree 挂载到页面
         patch(null, subTree, container, anchor)
         // 组件的 vnode 的 el, 会指向 subTree 的 el, 它们是相同的
@@ -474,7 +488,8 @@ export function createRenderer(options) {
         triggerHooks(instance, LifecycleHooks.BEFORE_UPDATE)
 
         const preSubTree = instance.subTree
-        const subTree = render.call(instance.proxy)
+        // const subTree = render.call(instance.proxy)
+        const subTree = renderComponentRoot(instance)
         patch(preSubTree, subTree, container, anchor)
         // 组件的 vnode 的 el, 会指向 subTree 的 el, 它们是相同的
         next.el = subTree.el
@@ -574,7 +589,7 @@ export function createRenderer(options) {
     /**
      * 元素，文本，组件
      */
-    const { shapeFlag, type } = n2
+    const { shapeFlag, type, ref } = n2
     switch (type) {
       case Text:
         // 处理文本
@@ -588,6 +603,10 @@ export function createRenderer(options) {
           // 组件
           processComponent(n1, n2, container, anchor)
         }
+    }
+
+    if (ref != null) {
+      setRef(ref, n2)
     }
   }
 

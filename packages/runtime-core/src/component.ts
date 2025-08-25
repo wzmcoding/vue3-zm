@@ -167,6 +167,45 @@ function createSetupContext(instance) {
     },
     // 插槽
     slots: instance.slots,
+    // 暴露属性
+    expose(exposed) {
+      // 把用户传递的对象，保存到当前组件实例上
+      instance.exposed = exposed
+    },
+  }
+}
+
+/**
+ * 获取到组件公开的属性
+ * @param instance
+ */
+export function getComponentPublicInstance(instance) {
+  if (instance.exposed) {
+    /**
+     * 用户可以访问 exposed 和 publicPropertiesMap
+     */
+
+    // 如果有 exposedProxy， 则返回
+    if (instance.exposedProxy) {
+      return instance.exposedProxy
+    }
+    // 创建代理对象
+    instance.exposedProxy = new Proxy(proxyRefs(instance.exposed), {
+      get(target, key) {
+        if (key in target) {
+          // 用户访问了，exposed 中的属性
+          return target[key]
+        }
+        if (key in publicPropertiesMap) {
+          // $el $props $slots $refs $attrs
+          return publicPropertiesMap[key](instance)
+        }
+      },
+    })
+    return instance.exposedProxy
+  } else {
+    // 如果没有手动暴露，返回代理对象 proxy
+    return instance.proxy
   }
 }
 
@@ -206,4 +245,21 @@ export function getCurrentInstance() {
  */
 export function unsetCurrentInstance() {
   currentInstance = null
+}
+
+/**
+ * 当前正在渲染的组件实例
+ */
+let currentRenderingInstance = null
+
+export function setCurrentRenderingInstance(instance) {
+  currentRenderingInstance = instance
+}
+
+export function unsetCurrentRenderingInstance() {
+  currentRenderingInstance = null
+}
+
+export function getCurrentRenderingInstance() {
+  return currentRenderingInstance
 }

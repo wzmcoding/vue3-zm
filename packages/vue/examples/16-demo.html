@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import {
+        h,
+        ref,
+        createApp,
+        getCurrentInstance,
+        onMounted,
+        useTemplateRef,
+      } from '../dist/vue.esm.js'
+
+      const Child = {
+        props: ['count'],
+        setup(props, { attrs, slots, emit, expose }) {
+          /**
+           * 如果手动调用了 expose,那么父组件通过 ref 获取到子组件实例的时候，只能获取到 expose 暴露的属性和 $props $slots $attrs
+           * 如果用户没有调用 expose, 那么父组件通过 ref 可以获取到子组件的 instance.proxy
+           */
+          expose({
+            a: ref(0), // 需要解包
+            foo() {
+              console.log('我是子组件暴露的 foo')
+            },
+          })
+          return () => {
+            return h('div', ['我是子组件', props.count])
+          }
+        },
+      }
+
+      const Comp = {
+        setup() {
+          const count = ref(0)
+          // const elRef = ref()
+          const vm = getCurrentInstance()
+          // const childRef = ref()
+          const el = useTemplateRef('elRef')
+          onMounted(() => {
+            // console.log('childRef ->', childRef.value.$el)
+            // console.log('childRef ->', childRef.value.a)
+            // console.log('childRef ->', vm.proxy.$refs.childRef)
+            // console.log('elRef=>', vm.proxy.$refs.elRef)
+            console.log('el->', el.value)
+          })
+          const flag = ref(true)
+          setTimeout(() => {
+            flag.value = false
+          }, 1000)
+          return () => {
+            return h('div', [
+              // h('p', { id: 'container', ref: elRef }, '我是父组件的p标签'),
+              h('p', { id: 'container', ref: 'elRef' }, '我是父组件的p标签'),
+              // flag.value
+              //   ? h(Child, {
+              //       count: count.value,
+              //       ref: 'childRef',
+              //     })
+              //   : '',
+            ])
+          }
+        },
+      }
+
+      const app = createApp(Comp, { msg: 'hello' })
+      app.mount('#app')
+    </script>
+  </body>
+</html>
