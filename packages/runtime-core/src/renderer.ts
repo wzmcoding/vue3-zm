@@ -313,11 +313,26 @@ export function createRenderer(options) {
     }
   }
 
+  const unmountComponent = instance => {
+    /**
+     * 卸载前
+     */
+    triggerHooks(instance, LifecycleHooks.BEFORE_UNMOUNT)
+    // 把 组件的 subTree 卸载掉
+    unmount(instance.subTree)
+    /**
+     * 卸载后
+     */
+    triggerHooks(instance, LifecycleHooks.UNMOUNTED)
+  }
+
   // 卸载
   const unmount = vnode => {
-    const { type, shapeFlags, children } = vnode
-
-    if (shapeFlags & ShapeFlags.ARRAY_CHILDREN) {
+    const { type, shapeFlag, children } = vnode
+    if (shapeFlag & ShapeFlags.COMPONENT) {
+      // 组件
+      unmountComponent(vnode.component)
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
       // 子节点是数组
       unmountChildren(children)
     }
@@ -435,9 +450,15 @@ export function createRenderer(options) {
         vnode.el = subTree.el
         // 保存子树
         instance.subTree = subTree
+        // 挂载完了
         instance.isMounted = true
+
+        /**
+         * 挂载后，触发 mounted
+         */
+        triggerHooks(instance, LifecycleHooks.MOUNTED)
       } else {
-        // 更新
+        // 更新的逻辑
         let { vnode, render, next } = instance
         if (next) {
           // 父组件传递属性，触发的更新
@@ -446,12 +467,23 @@ export function createRenderer(options) {
           // 自身属性触发的更新
           next = vnode
         }
+
+        /**
+         * 更新前，触发 beforeUpdate
+         */
+        triggerHooks(instance, LifecycleHooks.BEFORE_UPDATE)
+
         const preSubTree = instance.subTree
         const subTree = render.call(instance.proxy)
         patch(preSubTree, subTree, container, anchor)
         // 组件的 vnode 的 el, 会指向 subTree 的 el, 它们是相同的
         next.el = subTree.el
         instance.subTree = subTree
+
+        /**
+         * 更新后，触发 updated
+         */
+        triggerHooks(instance, LifecycleHooks.UPDATED)
       }
     }
 

@@ -1,4 +1,8 @@
-import { getCurrentInstance } from './component'
+import {
+  getCurrentInstance,
+  setCurrentInstance,
+  unsetCurrentInstance,
+} from './component'
 
 export enum LifecycleHooks {
   // 挂载 instance.bm
@@ -43,7 +47,16 @@ function createHook(type) {
 function injectHook(target, hook, type) {
   if (target) {
     const hooks = target[type] || (target[type] = [])
-    hooks.push(hook)
+
+    /**
+     * 重写了一下，确保用户能访问到 currentInstance
+     */
+    const _hooks = () => {
+      setCurrentInstance(target)
+      hook()
+      unsetCurrentInstance()
+    }
+    hooks.push(_hooks)
   }
 }
 
