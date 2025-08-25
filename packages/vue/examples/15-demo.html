@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import {
+        ref,
+        h,
+        createApp,
+        getCurrentInstance,
+        onBeforeMount,
+        onMounted,
+      } from '../dist/vue.esm.js'
+
+      /**
+       * 挂载：
+       *  onBeforeMount
+       *  onMounted
+       *
+       * 更新：
+       *  onBeforeUpdate
+       *  onUpdated
+       *
+       *  卸载：
+       *  onBeforeUnmount
+       *  onUnmounted
+       */
+
+      const Comp = {
+        setup() {
+          const vm = getCurrentInstance()
+          onBeforeMount(() => {
+            console.log('onBeforeMount')
+          })
+          // onMounted(() => {
+          //   console.log('mounted1')
+          // })
+          // onMounted(() => {
+          //   console.log('mounted2')
+          // })
+
+          console.log('vm', vm.proxy.$nextTick)
+          return () => {
+            return h('div', [h('p', '我是父组件的p标签')])
+          }
+        },
+      }
+
+      createApp(Comp).mount('#app')
+    </script>
+  </body>
+</html>
