@@ -5,6 +5,7 @@ import {
   isString,
   ShapeFlags,
 } from '@vue/shared'
+import { getCurrentRenderingInstance } from './component'
 
 /**
  * 文本节点标记
@@ -70,6 +71,18 @@ function normalizeChildren(vnode, children) {
   return children
 }
 
+function normalizeRef(ref) {
+  if (ref == null) {
+    return
+  }
+  return {
+    // 原始的 ref
+    r: ref,
+    // 当前正在渲染的组件实例
+    i: getCurrentRenderingInstance(),
+  }
+}
+
 /**
  * 创建虚拟节点的底层方法
  * @param type 节点类型
@@ -97,6 +110,8 @@ export function createVNode(type, props?, children = null) {
     // 虚拟节点要挂载的元素
     el: null,
     shapeFlag,
+    // 绑定 ref
+    ref: normalizeRef(props?.ref),
   }
 
   normalizeChildren(vnode, children)

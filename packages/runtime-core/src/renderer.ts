@@ -1,13 +1,22 @@
 import { ShapeFlags } from '@vue/shared'
 import { isSameVNodeType, normalizeVNode, Text } from './vnode'
 import { createAppAPI } from './apiCreateApp'
-import { createComponentInstance, setupComponent } from './component'
+import {
+  createComponentInstance,
+  setCurrentRenderingInstance,
+  setupComponent,
+  unsetCurrentRenderingInstance,
+} from './component'
 import { ReactiveEffect } from '@vue/reactivity'
 import { queueJob } from './scheduler'
-import { shouldUpdateComponent } from './componentRenderUtils'
+import {
+  renderComponentRoot,
+  shouldUpdateComponent,
+} from './componentRenderUtils'
 import { updateProps } from './componentProps'
 import { updateSlots } from './componentSlots'
 import { LifecycleHooks, triggerHooks } from './apiLifecycle'
+import { setRef } from './renderTemplateRef'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -313,15 +322,34 @@ export function createRenderer(options) {
     }
   }
 
+  const unmountComponent = instance => {
+    /**
+     * 卸载前
+     */
+    triggerHooks(instance, LifecycleHooks.BEFORE_UNMOUNT)
+    // 把 组件的 subTree 卸载掉
+    unmount(instance.subTree)
+    /**
+     * 卸载后
+     */
+    triggerHooks(instance, LifecycleHooks.UNMOUNTED)
+  }
+
   // 卸载
   const unmount = vnode => {
-    const { type, shapeFlags, children } = vnode
-
-    if (shapeFlags & ShapeFlags.ARRAY_CHILDREN) {
+    const { type, shapeFlag, children, ref } = vnode
+    if (shapeFlag & ShapeFlags.COMPONENT) {
+      // 组件
+      unmountComponent(vnode.component)
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
       // 子节点是数组
       unmountChildren(children)
     }
     hostRemove(vnode.el)
+
+    if (ref != null) {
+      setRef(ref, null)
+    }
   }
 
   // 挂载子元素
@@ -428,16 +456,23 @@ export function createRenderer(options) {
 
         // 调用 render 拿到 subTree, this 先指向 setupState,后面指向proxy,因为要访问this.xxx
         // const subTree = instance.render.call(instance.setupState)
-        const subTree = render.call(instance.proxy)
+        // const subTree = render.call(instance.proxy)
+        const subTree = renderComponentRoot(instance)
         // 将 subTree 挂载到页面
         patch(null, subTree, container, anchor)
         // 组件的 vnode 的 el, 会指向 subTree 的 el, 它们是相同的
         vnode.el = subTree.el
         // 保存子树
         instance.subTree = subTree
+        // 挂载完了
         instance.isMounted = true
+
+        /**
+         * 挂载后，触发 mounted
+         */
+        triggerHooks(instance, LifecycleHooks.MOUNTED)
       } else {
-        // 更新
+        // 更新的逻辑
         let { vnode, render, next } = instance
         if (next) {
           // 父组件传递属性，触发的更新
@@ -446,12 +481,24 @@ export function createRenderer(options) {
           // 自身属性触发的更新
           next = vnode
         }
+
+        /**
+         * 更新前，触发 beforeUpdate
+         */
+        triggerHooks(instance, LifecycleHooks.BEFORE_UPDATE)
+
         const preSubTree = instance.subTree
-        const subTree = render.call(instance.proxy)
+        // const subTree = render.call(instance.proxy)
+        const subTree = renderComponentRoot(instance)
         patch(preSubTree, subTree, container, anchor)
         // 组件的 vnode 的 el, 会指向 subTree 的 el, 它们是相同的
         next.el = subTree.el
         instance.subTree = subTree
+
+        /**
+         * 更新后，触发 updated
+         */
+        triggerHooks(instance, LifecycleHooks.UPDATED)
       }
     }
 
@@ -542,7 +589,7 @@ export function createRenderer(options) {
     /**
      * 元素，文本，组件
      */
-    const { shapeFlag, type } = n2
+    const { shapeFlag, type, ref } = n2
     switch (type) {
       case Text:
         // 处理文本
@@ -556,6 +603,10 @@ export function createRenderer(options) {
           // 组件
           processComponent(n1, n2, container, anchor)
         }
+    }
+
+    if (ref != null) {
+      setRef(ref, n2)
     }
   }
 
