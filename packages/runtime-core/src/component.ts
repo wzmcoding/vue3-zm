@@ -7,11 +7,19 @@ import { initSlots } from './componentSlots'
 /**
  * 创建组件实例
  */
-export function createComponentInstance(vnode, container, anchor) {
+export function createComponentInstance(vnode, container, anchor, parent) {
   const { type } = vnode
+
+  // 跟组件没有parent, 就拿vnode的 appContext，否则就拿parent的 appContext
+  const appContext = parent ? parent.appContext : vnode.appContext
+
   const instance: any = {
     vnode,
     type,
+    // createApp 产生的 appContext
+    appContext,
+    // 父组件
+    parent,
     // setup 返回的状态
     setupState: {},
     /**
