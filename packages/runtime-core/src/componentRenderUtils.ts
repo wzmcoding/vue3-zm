@@ -2,6 +2,7 @@ import {
   setCurrentRenderingInstance,
   unsetCurrentRenderingInstance,
 } from './component'
+import { ShapeFlags } from '@vue/shared'
 
 function hasPropsChanged(prevProps, nextProps) {
   const nextKeys = Object.keys(nextProps)
@@ -47,8 +48,24 @@ export function shouldUpdateComponent(n1, n2) {
 }
 
 export function renderComponentRoot(instance) {
-  setCurrentRenderingInstance(instance)
-  const subTree = instance.render.call(instance.proxy)
-  unsetCurrentRenderingInstance()
-  return subTree
+  const { vnode } = instance
+
+  if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+    // 有状态组件
+    // render 之前设置组件实例
+    setCurrentRenderingInstance(instance)
+    const subTree = instance.render.call(instance.proxy)
+    // render 调用完了，清空
+    unsetCurrentRenderingInstance()
+    return subTree
+  } else {
+    // 函数式组件
+    return vnode.type(instance.props, {
+      get attrs() {
+        return instance.attrs
+      },
+      slots: instance.slots,
+      emit: instance.emit,
+    })
+  }
 }

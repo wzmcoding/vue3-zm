@@ -1,4 +1,4 @@
-import { hasOwn, isArray } from '@vue/shared'
+import { hasOwn, isArray, ShapeFlags } from '@vue/shared'
 import { reactive } from '@vue/reactivity'
 
 export function normalizePropsOptions(props = {}) {
@@ -14,12 +14,24 @@ export function normalizePropsOptions(props = {}) {
   return props
 }
 
+/**
+ * 设置所有的  props attrs
+ */
 function setFullProps(instance, rawProps, props, attrs) {
-  const propsOptions = instance.propsOptions
+  const { propsOptions, vnode } = instance
+  // 是不是函数式组件
+  const isFunctionalComponent =
+    vnode.shapeFlag & ShapeFlags.FUNCTIONAL_COMPONENT
+  const hasProps = Object.keys(propsOptions).length > 0
   if (rawProps) {
+    /**
+     * 函数式组件：
+     *  如果没有声明 props,那所有的属性都是props  => (isFunctionalComponent && !hasProps)
+     *  否则，只有声明的属性是props, 其他都是attrs
+     */
     for (const key in rawProps) {
       const value = rawProps[key]
-      if (hasOwn(propsOptions, key)) {
+      if (hasOwn(propsOptions, key) || (isFunctionalComponent && !hasProps)) {
         // 如果propsOptions 中有这个属性，那么就是用户声明的 props
         props[key] = value
       } else {
