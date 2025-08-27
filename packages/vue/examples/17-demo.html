@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import {
+        h,
+        ref,
+        createApp,
+        inject,
+        provide,
+        getCurrentInstance,
+      } from '../dist/vue.esm.js'
+
+      const Child = {
+        setup() {
+          const count = inject('count')
+          console.log('inject count->', count.value)
+          return () => {
+            return h('div', ['我是子组件', count.value])
+          }
+        },
+      }
+
+      const App = {
+        name: 'App',
+        setup() {
+          const count = ref(0)
+          provide('count', count)
+
+          setTimeout(() => {
+            count.value++
+          }, 1000)
+
+          const vm = getCurrentInstance()
+          console.log('vm->', vm, vm.provides === app.context.provides)
+
+          const a = inject('a')
+          console.log('a->', a)
+          return () => {
+            return h('div', [
+              h('p', { id: 'container', ref: 'elRef' }, '我是父组件的p标签'),
+              h(Child),
+            ])
+          }
+        },
+      }
+
+      const app = createApp(App, { msg: 'hello' })
+      const a = ref('aaaaa')
+      app.provide('a', a)
+      app.mount('#app')
+    </script>
+  </body>
+</html>
