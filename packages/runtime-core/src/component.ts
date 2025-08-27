@@ -36,6 +36,9 @@ export function createComponentInstance(vnode, container, anchor, parent) {
     subTree: null,
     // 渲染函数
     render: null,
+    // 子组件没有，根据 原型链，去父组件找
+    // provides: Object.create(parent ? parent.provides : appContext.provides),  需要优化
+    provides: parent ? parent.provides : appContext.provides,
   }
 
   instance.ctx = {

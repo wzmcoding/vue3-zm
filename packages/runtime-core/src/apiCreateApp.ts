@@ -3,11 +3,12 @@ import { h } from './h'
 export function createAppAPI(render) {
   return function createApp(rootComponent, rootProps) {
     const context = {
-      // app 往后代组件使用provide注入的属性，会存到这里
+      // 根组件 往后代组件使用provide注入的属性，会存到这里
       provides: {},
     }
 
     const app = {
+      context,
       _container: null,
       mount(container) {
         /**
@@ -27,6 +28,9 @@ export function createAppAPI(render) {
       unmount() {
         // 卸载
         render(null, app._container)
+      },
+      provide(key, value) {
+        context.provides[key] = value
       },
     }
 
