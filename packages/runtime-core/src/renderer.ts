@@ -17,6 +17,7 @@ import { updateProps } from './componentProps'
 import { updateSlots } from './componentSlots'
 import { LifecycleHooks, triggerHooks } from './apiLifecycle'
 import { setRef } from './renderTemplateRef'
+import { isKeepAlive } from './components/KeepAlive'
 
 export function createRenderer(options) {
   // 提供虚拟节点 渲染到页面上的功能
@@ -342,7 +343,18 @@ export function createRenderer(options) {
 
   // 卸载
   const unmount = vnode => {
-    const { type, shapeFlag, children, ref } = vnode
+    const { shapeFlag, children, ref } = vnode
+
+    if (shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
+      // console.log('要缓存，不需要卸载')
+      /**
+       * 虽然不用卸载 KeepAlive 要缓存的组件， 但是我们要告诉 KeepAlive，子节点已经停用了
+       */
+      const parentComponent = vnode.component.parent
+      parentComponent.ctx.deactivate(vnode)
+      return
+    }
+
     if (shapeFlag & ShapeFlags.COMPONENT) {
       // 组件
       unmountComponent(vnode.component)
@@ -539,6 +551,13 @@ export function createRenderer(options) {
       anchor,
       parentComponent,
     )
+
+    if (isKeepAlive(vnode.type)) {
+      instance.ctx.renderer = {
+        options,
+      }
+    }
+
     // 保存组件实例到 vnode， 方便后续复用
     vnode.component = instance
     // 初始化组件状态
@@ -574,6 +593,16 @@ export function createRenderer(options) {
    */
   const processComponent = (n1, n2, container, anchor, parentComponent) => {
     if (n1 == null) {
+      /**
+       * 先看一下是不是缓存的，要不要复用
+       */
+      if (n2.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
+        /**
+         * 需要复用，不用重新挂载了,但是要告诉 KeepAlive 组件，让它自己处理激活的逻辑
+         */
+        parentComponent.ctx.activate(n2, container, anchor)
+        return
+      }
       // 挂载
       mountComponent(n2, container, anchor, parentComponent)
     } else {
