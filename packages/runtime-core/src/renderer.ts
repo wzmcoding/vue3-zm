@@ -343,7 +343,7 @@ export function createRenderer(options) {
 
   // 卸载
   const unmount = vnode => {
-    const { shapeFlag, children, ref } = vnode
+    const { shapeFlag, children, ref, transition } = vnode
 
     if (shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
       // console.log('要缓存，不需要卸载')
@@ -366,7 +366,19 @@ export function createRenderer(options) {
       // 子节点是数组
       unmountChildren(children)
     }
-    hostRemove(vnode.el)
+
+    const remove = () => {
+      // 移除 dom 元素
+      hostRemove(vnode.el)
+    }
+
+    if (transition) {
+      // 如果是过渡组件
+      transition.leave(vnode.el, remove)
+    } else {
+      // 移除 dom 元素
+      remove()
+    }
 
     if (ref != null) {
       setRef(ref, null)
@@ -389,7 +401,7 @@ export function createRenderer(options) {
      * 2. 设置它的 props
      * 3. 挂载它的子节点
      */
-    const { type, props, children, shapeFlag } = vnode
+    const { type, props, children, shapeFlag, transition } = vnode
     // 创建 dom 元素, type = div, span, p 等
     const el = hostCreateElement(type)
     // vnode.el 用于存储真实的 dom 元素
@@ -409,8 +421,17 @@ export function createRenderer(options) {
       mountChildren(children, el, parentComponent)
     }
 
+    if (transition) {
+      // 过渡组件插入之前
+      transition.beforeEnter?.(el)
+    }
     // 插入元素, 挂载到容器中
     hostInsert(el, container, anchor)
+
+    if (transition) {
+      // 过渡组件插入之后
+      transition.enter?.(el)
+    }
   }
 
   /**
@@ -482,7 +503,7 @@ export function createRenderer(options) {
         // 将 subTree 挂载到页面
         patch(null, subTree, container, anchor, instance)
         // 组件的 vnode 的 el, 会指向 subTree 的 el, 它们是相同的
-        vnode.el = subTree.el
+        vnode.el = subTree?.el
         // 保存子树
         instance.subTree = subTree
         // 挂载完了
@@ -513,7 +534,7 @@ export function createRenderer(options) {
         const subTree = renderComponentRoot(instance)
         patch(preSubTree, subTree, container, anchor, instance)
         // 组件的 vnode 的 el, 会指向 subTree 的 el, 它们是相同的
-        next.el = subTree.el
+        next.el = subTree?.el
         instance.subTree = subTree
 
         /**
@@ -623,6 +644,11 @@ export function createRenderer(options) {
   const patch = (n1, n2, container, anchor = null, parentComponent = null) => {
     if (n1 === n2) {
       // 如果两次传递了同一个虚拟节点，啥也不干
+      return
+    }
+
+    if (n1 && n2 == null) {
+      unmount(n1)
       return
     }
 
