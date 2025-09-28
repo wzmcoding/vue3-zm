@@ -1,5 +1,5 @@
 import { ShapeFlags } from '@vue/shared'
-import { isSameVNodeType, normalizeVNode, Text } from './vnode'
+import { Fragment, isSameVNodeType, normalizeVNode, Text } from './vnode'
 import { createAppAPI } from './apiCreateApp'
 import {
   createComponentInstance,
@@ -343,7 +343,7 @@ export function createRenderer(options) {
 
   // 卸载
   const unmount = vnode => {
-    const { shapeFlag, children, ref, transition } = vnode
+    const { shapeFlag, children, ref, transition, type } = vnode
 
     if (shapeFlag & ShapeFlags.COMPONENT_SHOULD_KEEP_ALIVE) {
       // console.log('要缓存，不需要卸载')
@@ -352,6 +352,12 @@ export function createRenderer(options) {
        */
       const parentComponent = vnode.component.parent
       parentComponent.ctx.deactivate(vnode)
+      return
+    }
+
+    if (type === Fragment) {
+      // 卸载 Fragment
+      unmountChildren(children)
       return
     }
 
@@ -369,7 +375,7 @@ export function createRenderer(options) {
 
     const remove = () => {
       // 移除 dom 元素
-      hostRemove(vnode.el)
+      vnode.el && hostRemove(vnode.el)
     }
 
     if (transition) {
@@ -633,6 +639,16 @@ export function createRenderer(options) {
     }
   }
 
+  const processFragment = (n1, n2, container, parentComponent) => {
+    if (n1 == null) {
+      // 挂载 Fragment
+      mountChildren(n2.children, container, parentComponent)
+    } else {
+      // 更新 Fragment
+      patchChildren(n1, n2, container, parentComponent)
+    }
+  }
+
   /**
    * 更新和挂载，都用这个函数
    * @param n1 老节点，之前的，如果有，表示要和 n2 做 diff,更新，如果没有，表示直接挂载n2
@@ -667,6 +683,9 @@ export function createRenderer(options) {
       case Text:
         // 处理文本
         processText(n1, n2, container, anchor)
+        break
+      case Fragment:
+        processFragment(n1, n2, container, parentComponent)
         break
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
