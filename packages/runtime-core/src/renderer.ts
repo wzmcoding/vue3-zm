@@ -1,4 +1,4 @@
-import { ShapeFlags } from '@vue/shared'
+import { ShapeFlags, PatchFlags } from '@vue/shared'
 import { Fragment, isSameVNodeType, normalizeVNode, Text } from './vnode'
 import { createAppAPI } from './apiCreateApp'
 import {
@@ -311,11 +311,33 @@ export function createRenderer(options) {
      */
     // 复用 dom 元素
     const el = (n2.el = n1.el)
+    const { patchFlag } = n2
 
     // 更新 props
     const oldProps = n1.props
     const newProps = n2.props
-    patchProps(el, oldProps, newProps)
+    if (patchFlag > 0) {
+      // patchFlag 有
+      if (patchFlag & PatchFlags.CLASS) {
+        // 类名是动态的
+        hostPatchProp(el, 'class', oldProps?.class, newProps.class)
+      }
+
+      if (patchFlag & PatchFlags.STYLE) {
+        // style 是动态的
+        hostPatchProp(el, 'style', oldProps?.style, newProps.style)
+      }
+      if (patchFlag & PatchFlags.TEXT) {
+        // 子节点是文本，并且是动态的
+        if (n1.children !== n2.children) {
+          hostSetElementText(el, n2.children)
+        }
+        return
+      }
+    } else {
+      // patchFlag 没有，就更新所有的属性
+      patchProps(el, oldProps, newProps)
+    }
 
     // 更新 children
     patchChildren(n1, n2, el, parentComponent)
