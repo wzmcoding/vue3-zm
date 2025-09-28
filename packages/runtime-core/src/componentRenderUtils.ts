@@ -11,7 +11,7 @@ function hasPropsChanged(prevProps, nextProps) {
   }
 
   for (const key of nextKeys) {
-    if (nextKeys[key] !== prevProps[key]) {
+    if (nextProps[key] !== prevProps[key]) {
       return true
     }
   }
