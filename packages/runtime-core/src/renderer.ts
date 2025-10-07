@@ -311,7 +311,7 @@ export function createRenderer(options) {
      */
     // 复用 dom 元素
     const el = (n2.el = n1.el)
-    const { patchFlag } = n2
+    const { patchFlag, dynamicChildren } = n2
 
     // 更新 props
     const oldProps = n1.props
@@ -339,8 +339,25 @@ export function createRenderer(options) {
       patchProps(el, oldProps, newProps)
     }
 
-    // 更新 children
-    patchChildren(n1, n2, el, parentComponent)
+    if (dynamicChildren && n1.dynamicChildren) {
+      // 这种情况下，我们只需要更新动态节点
+      patchBlockChildren(
+        n1.dynamicChildren,
+        dynamicChildren,
+        el,
+        parentComponent,
+      )
+    } else {
+      // 更新 children，全量diff
+      patchChildren(n1, n2, el, parentComponent)
+    }
+  }
+
+  const patchBlockChildren = (c1, c2, container, parentComponent) => {
+    // 只对比当前 Block 的动态子节点
+    for (let i = 0; i < c2.length; i++) {
+      patch(c1[i], c2[i], container, null, parentComponent)
+    }
   }
 
   // 卸载子元素
