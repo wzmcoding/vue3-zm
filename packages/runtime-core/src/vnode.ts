@@ -92,8 +92,15 @@ function normalizeRef(ref) {
  * @param props 节点的属性
  * @param children 子节点
  * @param patchFlag 更新标记
+ * @param isBlock 表示是不是一个块
  */
-export function createVNode(type, props?, children = null, patchFlag = 0) {
+export function createVNode(
+  type,
+  props?,
+  children = null,
+  patchFlag = 0,
+  isBlock = false,
+) {
   let shapeFlag = 0
 
   if (isString(type)) {
@@ -119,6 +126,7 @@ export function createVNode(type, props?, children = null, patchFlag = 0) {
     key: props?.key,
     // 虚拟节点要挂载的元素
     el: null,
+    dynamicChildren: null,
     shapeFlag,
     // 绑定 ref
     ref: normalizeRef(props?.ref),
@@ -126,7 +134,48 @@ export function createVNode(type, props?, children = null, patchFlag = 0) {
     patchFlag,
   }
 
+  if (patchFlag > 0 && currentBlock && !isBlock) {
+    // currentBlock 有，并且这个 vnode 是动态的
+    currentBlock.push(vnode)
+  }
+
   normalizeChildren(vnode, children)
 
+  return vnode
+}
+
+const blockStack = []
+
+// 当前正在收集的块
+let currentBlock = null
+
+export function openBlock() {
+  currentBlock = []
+  // 入栈
+  blockStack.push(currentBlock)
+}
+
+function closeBlock() {
+  // 出栈
+  blockStack.pop()
+  // 拿栈中的最后一个，给到 currentBlock
+  currentBlock = blockStack.at(-1)
+}
+
+function setupBlock(vnode) {
+  // 把收集到的动态节点，放到 vnode 上面去
+  vnode.dynamicChildren = currentBlock
+  closeBlock()
+  if (currentBlock) {
+    // 把当前 vnode 块，放到它的父级块上
+    currentBlock.push(vnode)
+  }
+}
+
+export function createElementBlock(type, props?, children?, patchFlag?) {
+  const vnode = createVNode(type, props, children, patchFlag, true)
+
+  setupBlock(vnode)
+  // 这里还有别的事情
   return vnode
 }
