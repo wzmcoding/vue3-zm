@@ -7,6 +7,7 @@ import {
 } from '@vue/shared'
 import { getCurrentRenderingInstance } from './component'
 import { isTeleport } from './components/Teleport'
+import { isRef } from '@vue/reactivity'
 
 /**
  * 文本节点标记
@@ -178,4 +179,25 @@ export function createElementBlock(type, props?, children?, patchFlag?) {
   setupBlock(vnode)
   // 这里还有别的事情
   return vnode
+}
+
+export function renderList(list, cb) {
+  return list.map(cb)
+}
+
+/**
+ * 把输入的 val 转换成字符串
+ */
+export function toDisplayString(val) {
+  if (isString(val)) return val
+  if (val == null) return ''
+  if (isRef(val)) {
+    return val.value
+  }
+
+  if (typeof val === 'object') {
+    return JSON.stringify(val)
+  }
+
+  return String(val)
 }
