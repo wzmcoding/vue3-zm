@@ -679,10 +679,25 @@ export function createRenderer(options) {
   }
 
   const processFragment = (n1, n2, container, parentComponent) => {
+    const { patchFlag, dynamicChildren } = n2
     if (n1 == null) {
       // 挂载 Fragment
       mountChildren(n2.children, container, parentComponent)
     } else {
+      if (
+        dynamicChildren &&
+        n1.dynamicChildren &&
+        patchFlag & PatchFlags.STABLE_FRAGMENT
+      ) {
+        // 是稳定的序列，会走动态子节点更新
+        patchBlockChildren(
+          n1.dynamicChildren,
+          dynamicChildren,
+          container,
+          parentComponent,
+        )
+        return
+      }
       // 更新 Fragment
       patchChildren(n1, n2, container, parentComponent)
     }
