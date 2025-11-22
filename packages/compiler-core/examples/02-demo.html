@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Title</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      //  @vue/compiler-dom
+      // import { parse } from '../../../node_modules/@vue/compiler-dom/dist/compiler-dom.esm-browser.js'
+      import { parse } from '../dist/compiler-core.esm.js'
+
+      /**
+       * 栈的思维
+       * root.children = [div]
+       * div.children = [span,p]
+       * span.children = [hello world]
+       * p.children = [你好啊]
+       * stack = []
+       */
+      console.log(parse('<div><span>hello world</span><p>你好啊</p></div>'))
+    </script>
+  </body>
+</html>
