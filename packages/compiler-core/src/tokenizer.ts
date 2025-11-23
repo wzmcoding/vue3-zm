@@ -54,6 +54,10 @@ export enum State {
   InSFCRootTagName, // 解析单文件组件根标签名
 }
 
+function isTagStart(str) {
+  return /[a-zA-Z]/.test(str)
+}
+
 /**
  * 解析器
  * 基于状态机实现的
@@ -98,14 +102,27 @@ export class Tokenizer {
       switch (this.state) {
         case State.Text: {
           // 表示正在解析文本
-          if (str === '<') {
-            // this.cbs.ontext(this.sectionStart, this.index)
-            // // 切换状态
-            // this.state = State.BeforeTagName
-            // // 移动开始位置
-            // this.sectionStart = this.index + 1
-            // console.log('切换状态，开始解析标签')
-          }
+          this.stateText(str)
+          break
+        }
+        case State.BeforeTagName: {
+          // 解析标签名之前
+          this.stateBeforeTagName(str)
+          break
+        }
+        case State.InTagName: {
+          // 解析标签名
+          this.stateInTagName(str)
+          break
+        }
+        case State.BeforeAttrName: {
+          // 准备解析属性名
+          this.stateBeforeAttrName(str)
+          break
+        }
+        case State.InClosingTagName: {
+          // 解析结束标签的标签名
+          this.stateInClosingTagName(str)
           break
         }
       }
@@ -114,6 +131,68 @@ export class Tokenizer {
 
     this.cleanup()
   }
+
+  stateInClosingTagName(str) {
+    // <div></div>
+    if (str === '>') {
+      this.cbs.onclosetag(this.sectionStart, this.index)
+      // 要从下一个开始解析文本节点不能包含 >
+      this.sectionStart = this.index + 1
+      this.state = State.Text
+    }
+  }
+
+  stateBeforeAttrName(str) {
+    if (str === '>') {
+      // 表示开始标签解析完了
+      this.cbs.onopentagend()
+      // 要从下一个开始解析文本节点不能包含 >
+      this.sectionStart = this.index + 1
+      // 继续解析文本 <div>hello world</div>
+      this.state = State.Text
+    }
+  }
+
+  stateInTagName(str) {
+    // <div id="123"></div>
+    if (str === '>' || str === ' ') {
+      // 标签名完事儿了
+      this.cbs.onopentagname(this.sectionStart, this.index)
+      // 开始解析属性了
+      this.state = State.BeforeAttrName
+      this.sectionStart = this.index
+      this.stateBeforeAttrName(str)
+    }
+  }
+  stateBeforeTagName(str) {
+    // <div></div>
+    if (isTagStart(str)) {
+      // 开始标签
+      this.state = State.InTagName
+      this.sectionStart = this.index
+    } else if (str === '/') {
+      this.state = State.InClosingTagName
+      // <div></div>，当前正在匹配的字符串是 / 要 +1 从下一个开始
+      this.sectionStart = this.index + 1
+    } else {
+      // 老六乱写的，不是标签
+      this.state = State.Text
+    }
+  }
+  stateText(str) {
+    if (str === '<') {
+      // 证明我要开始解析标签了
+      if (this.sectionStart < this.index) {
+        // 处理之前的文本内容
+        this.cbs.ontext(this.sectionStart, this.index)
+      }
+      // 切换状态
+      this.state = State.BeforeTagName
+      // 移动开始位置
+      this.sectionStart = this.index
+    }
+  }
+
   cleanup() {
     if (this.sectionStart < this.index) {
       // hello world 处理完了 this.sectionStart = 0, this.index = 11
