@@ -147,3 +147,16 @@ export enum State {
   InSFCRootTagName, // 解析单文件组件根标签名
 }
 ```
+
+```js
+const root = {
+  type:0,
+  children:[{
+    div,
+    children:[{ span,children:[hello] }]
+  }]
+}
+```
+stack = []
+
+<div><span>hello</span></div>

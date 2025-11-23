@@ -3,6 +3,7 @@ import { Tokenizer } from './tokenizer'
 
 let currentInput = ''
 let currentRoot
+let currentOpenTag
 
 function getSlice(start, end) {
   return currentInput.slice(start, end)
@@ -15,6 +16,72 @@ function getLoc(start, end) {
     source: getSlice(start, end), // 内容
   }
 }
+
+// 栈，保存当前已打开未闭合的标签，解析到子节点的时候，会往里面塞
+const stack = []
+
+function addNode(node) {
+  // ;(stack.at(-1) || currentRoot).children.push(node)
+  const lastNode = stack.at(-1)
+  // 找到栈的最后一个
+  if (lastNode) {
+    // 如果有，往children里面加
+    lastNode.children.push(node)
+  } else {
+    // 如果没有，加入到根节点里面去
+    currentRoot.children.push(node)
+  }
+}
+
+function setLocEnd(loc, end) {
+  loc.source = getSlice(loc.start.offset, end)
+  loc.end = tokenizer.getPos(end)
+}
+
+const tokenizer = new Tokenizer({
+  ontext(start, end) {
+    const content = getSlice(start, end)
+
+    const textNode = {
+      content,
+      type: NodeTypes.TEXT,
+      loc: getLoc(start, end),
+    }
+    addNode(textNode)
+  },
+  /**
+   * 标签名解析完了
+   * @param start
+   * @param end
+   */
+  onopentagname(start, end) {
+    // <div></div>
+    const tag = getSlice(start, end)
+    // 把currentOpenTag 的作用于提升到外部，为了方便解析属性节点的时候，拿到它
+    currentOpenTag = {
+      type: NodeTypes.ELEMENT,
+      tag,
+      children: [],
+      loc: getLoc(start - 1, end),
+    }
+  },
+  onopentagend() {
+    addNode(currentOpenTag)
+    stack.push(currentOpenTag)
+    currentOpenTag = null
+  },
+  onclosetag(start, end) {
+    // 闭合
+    const name = getSlice(start, end)
+    const lastNode = stack.pop()
+    if (lastNode.tag === name) {
+      setLocEnd(lastNode.loc, end + 1)
+    } else {
+      // 标签写错了
+      console.log('有个老六写错了')
+    }
+  },
+})
 
 /**
  * 创建ast语法树的根节点
@@ -30,19 +97,6 @@ function createRoot(source) {
     source,
   }
 }
-
-const tokenizer = new Tokenizer({
-  ontext(start, end) {
-    const content = getSlice(start, end)
-
-    const textNode = {
-      content,
-      type: NodeTypes.TEXT,
-      loc: getLoc(start, end),
-    }
-    currentRoot.children.push(textNode)
-  },
-})
 
 export function parse(input) {
   // 把当前正在解析的字符串暴漏给外部作用域
