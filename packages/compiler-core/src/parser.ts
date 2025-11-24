@@ -4,6 +4,7 @@ import { Tokenizer } from './tokenizer'
 let currentInput = ''
 let currentRoot
 let currentOpenTag
+let currentProps
 
 function getSlice(start, end) {
   return currentInput.slice(start, end)
@@ -80,6 +81,31 @@ const tokenizer = new Tokenizer({
       // 标签写错了
       console.log('有个老六写错了')
     }
+  },
+  onattrname(start, end) {
+    currentProps = {
+      // 属性名 id
+      name: getSlice(start, end),
+      // 位置信息，位置信息也不准确，还没解析完属性值
+      loc: getLoc(start, end),
+      // 还没解析到属性值，先设置成 undefined
+      value: undefined,
+    }
+  },
+  onattrvalue(start, end) {
+    currentProps.value = getSlice(start, end)
+    setLocEnd(currentProps.loc, end + 1)
+    if (currentOpenTag) {
+      // 如果当前标签存在，那就把属性放进去
+      if (!currentOpenTag.props) {
+        // 第一次没有 props ，给它设置为 空数组
+        currentOpenTag.props = []
+      }
+      // 把属性放进去
+      currentOpenTag.props.push(currentProps)
+    }
+    // 置空
+    currentProps = null
   },
 })
 
