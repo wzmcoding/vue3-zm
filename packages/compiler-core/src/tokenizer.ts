@@ -58,6 +58,10 @@ function isTagStart(str) {
   return /[a-zA-Z]/.test(str)
 }
 
+function isWhitespace(str) {
+  return str === ' ' || str === '\n' || str === '\t' || str === '\r'
+}
+
 /**
  * 解析器
  * 基于状态机实现的
@@ -125,6 +129,21 @@ export class Tokenizer {
           this.stateInClosingTagName(str)
           break
         }
+        case State.InAttrName: {
+          // 解析属性名
+          this.stateInAttrName(str)
+          break
+        }
+        case State.AfterAttrName: {
+          // 属性名后的状态
+          this.stateAfterAttrName(str)
+          break
+        }
+        case State.InAttrValueDq: {
+          // 解析被双引号包裹的属性值
+          this.stateInAttrValueDq(str)
+          break
+        }
       }
       this.index++
     }
@@ -142,7 +161,58 @@ export class Tokenizer {
     }
   }
 
+  stateInAttrName(str) {
+    /**
+     * <div id="123"></div>
+     */
+    if (str === '=') {
+      // 属性名解析完了
+      this.cbs.onattrname(this.sectionStart, this.index)
+      // 属性名解析完了
+      this.state = State.AfterAttrName
+    }
+  }
+
+  stateAfterAttrName(str) {
+    /**
+     * <div id="app"></div>
+     */
+    if (str === '"') {
+      // 遇到双引号，开始解析属性值
+      this.state = State.InAttrValueDq
+      this.sectionStart = this.index + 1
+    }
+  }
+
+  stateInAttrValueDq(str) {
+    /**
+     * <div id="app" class="container"></div>
+     */
+    if (str === '"') {
+      // 又遇到双引号了，代表属性值，解析完了
+      this.cbs.onattrvalue(this.sectionStart, this.index)
+      this.state = State.BeforeAttrName
+      this.sectionStart = this.index
+    }
+  }
+
+  stateInTagName(str) {
+    // <div id="123"></div>
+    if (str === '>' || isWhitespace(str)) {
+      // 标签名完事儿了
+      this.cbs.onopentagname(this.sectionStart, this.index)
+      // 开始解析属性了
+      this.state = State.BeforeAttrName
+      this.sectionStart = this.index
+      this.stateBeforeAttrName(str)
+    }
+  }
+
   stateBeforeAttrName(str) {
+    /**
+     * <div id="123"></div>
+     * 可能会遇到 空格、> 或者a-z
+     */
     if (str === '>') {
       // 表示开始标签解析完了
       this.cbs.onopentagend()
@@ -150,18 +220,10 @@ export class Tokenizer {
       this.sectionStart = this.index + 1
       // 继续解析文本 <div>hello world</div>
       this.state = State.Text
-    }
-  }
-
-  stateInTagName(str) {
-    // <div id="123"></div>
-    if (str === '>' || str === ' ') {
-      // 标签名完事儿了
-      this.cbs.onopentagname(this.sectionStart, this.index)
-      // 开始解析属性了
-      this.state = State.BeforeAttrName
+    } else if (!isWhitespace(str)) {
+      // 如果不是空格等 ,开始解析属性
+      this.state = State.InAttrName
       this.sectionStart = this.index
-      this.stateBeforeAttrName(str)
     }
   }
   stateBeforeTagName(str) {
