@@ -1,5 +1,5 @@
 import { NodeTypes } from './ast'
-import { Tokenizer } from './tokenizer'
+import { isWhitespace, Tokenizer } from './tokenizer'
 
 let currentInput = ''
 let currentRoot
@@ -106,6 +106,34 @@ const tokenizer = new Tokenizer({
     }
     // 置空
     currentProps = null
+  },
+  oninterpolation(start, end) {
+    // {{ msg }}
+
+    //  msg
+    let innerStart = start + 2
+    let innerEnd = end - 2
+
+    // 剔除插值表达式两边的空格
+    while (isWhitespace(currentInput[innerStart])) {
+      innerStart++
+    }
+
+    while (isWhitespace(currentInput[innerEnd - 1])) {
+      innerEnd--
+    }
+
+    addNode({
+      // 插值表达式
+      type: NodeTypes.INTERPOLATION,
+      loc: getLoc(start, end),
+      content: {
+        // 简单的表达式
+        type: NodeTypes.SIMPLE_EXPRESSION,
+        content: getSlice(innerStart, innerEnd),
+        loc: getLoc(innerStart, innerEnd),
+      },
+    })
   },
 })
 
