@@ -39,6 +39,37 @@ function setLocEnd(loc, end) {
   loc.end = tokenizer.getPos(end)
 }
 
+function isAllWhitespace(str) {
+  //     \n     h
+  for (let i = 0; i < str.length; i++) {
+    if (!isWhitespace(str[i])) {
+      return false
+    }
+  }
+  return true
+}
+
+function condenseWhitespace(children) {
+  const _children = [...children] // [null, {{msg}}, null]
+  for (let i = 0; i < _children.length; i++) {
+    const node = _children[i]
+    if (node.type === NodeTypes.TEXT) {
+      // 是文本节点
+      if (isAllWhitespace(node.content)) {
+        if (i === 0 || i === _children.length - 1) {
+          // 第一个或者最后一个节点，所有内容都是空的，剔除掉
+          _children[i] = null
+        } else {
+          // 中间的，压缩所有的空白字符，变成一个空字符串
+          node.content = ' '
+        }
+      }
+    }
+  }
+
+  return _children.filter(Boolean)
+}
+
 const tokenizer = new Tokenizer({
   ontext(start, end) {
     const content = getSlice(start, end)
@@ -81,6 +112,8 @@ const tokenizer = new Tokenizer({
       // 标签写错了
       console.log('有个老六写错了')
     }
+
+    lastNode.children = condenseWhitespace(lastNode.children)
   },
   onattrname(start, end) {
     currentProps = {

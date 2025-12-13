@@ -92,6 +92,11 @@ export class Tokenizer {
    */
   buffer = ''
 
+  /**
+   * 保存所有换行符的位置
+   */
+  newLines = []
+
   constructor(public cbs) {}
 
   parse(input) {
@@ -99,6 +104,11 @@ export class Tokenizer {
 
     while (this.index < this.buffer.length) {
       const str = this.buffer[this.index]
+
+      if (str === '\n') {
+        // 保存所有换行符的下标
+        this.newLines.push(this.index)
+      }
 
       /**
        * 状态机
@@ -310,9 +320,23 @@ export class Tokenizer {
    */
   getPos(index) {
     // hello world
+
+    let column = index + 1
+    let line = 1
+    // newLines = [5, 15, 22]
+    for (let i = this.newLines.length - 1; i >= 0; i--) {
+      const newLineIndex = this.newLines[i]
+      if (index > newLineIndex) {
+        line = i + 2 // 行数
+        column = index - newLineIndex // 列数
+        // 找到第一个比 index 小的就可以了
+        break
+      }
+    }
+
     return {
-      column: index + 1, // 表示在第几列
-      line: 1, // TODO 暂时不考虑换行
+      column, // 表示在第几列
+      line, // 表示在第几行
       offset: index, // 偏移量
     }
   }
