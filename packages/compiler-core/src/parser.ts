@@ -1,5 +1,5 @@
 import { NodeTypes } from './ast'
-import { Tokenizer } from './tokenizer'
+import { isWhitespace, Tokenizer } from './tokenizer'
 
 let currentInput = ''
 let currentRoot
@@ -37,6 +37,37 @@ function addNode(node) {
 function setLocEnd(loc, end) {
   loc.source = getSlice(loc.start.offset, end)
   loc.end = tokenizer.getPos(end)
+}
+
+function isAllWhitespace(str) {
+  //     \n     h
+  for (let i = 0; i < str.length; i++) {
+    if (!isWhitespace(str[i])) {
+      return false
+    }
+  }
+  return true
+}
+
+function condenseWhitespace(children) {
+  const _children = [...children] // [null, {{msg}}, null]
+  for (let i = 0; i < _children.length; i++) {
+    const node = _children[i]
+    if (node.type === NodeTypes.TEXT) {
+      // 是文本节点
+      if (isAllWhitespace(node.content)) {
+        if (i === 0 || i === _children.length - 1) {
+          // 第一个或者最后一个节点，所有内容都是空的，剔除掉
+          _children[i] = null
+        } else {
+          // 中间的，压缩所有的空白字符，变成一个空字符串
+          node.content = ' '
+        }
+      }
+    }
+  }
+
+  return _children.filter(Boolean)
 }
 
 const tokenizer = new Tokenizer({
@@ -81,6 +112,8 @@ const tokenizer = new Tokenizer({
       // 标签写错了
       console.log('有个老六写错了')
     }
+
+    lastNode.children = condenseWhitespace(lastNode.children)
   },
   onattrname(start, end) {
     currentProps = {
@@ -106,6 +139,34 @@ const tokenizer = new Tokenizer({
     }
     // 置空
     currentProps = null
+  },
+  oninterpolation(start, end) {
+    // {{ msg }}
+
+    //  msg
+    let innerStart = start + 2
+    let innerEnd = end - 2
+
+    // 剔除插值表达式两边的空格
+    while (isWhitespace(currentInput[innerStart])) {
+      innerStart++
+    }
+
+    while (isWhitespace(currentInput[innerEnd - 1])) {
+      innerEnd--
+    }
+
+    addNode({
+      // 插值表达式
+      type: NodeTypes.INTERPOLATION,
+      loc: getLoc(start, end),
+      content: {
+        // 简单的表达式
+        type: NodeTypes.SIMPLE_EXPRESSION,
+        content: getSlice(innerStart, innerEnd),
+        loc: getLoc(innerStart, innerEnd),
+      },
+    })
   },
 })
 

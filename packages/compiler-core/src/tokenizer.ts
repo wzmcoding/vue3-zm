@@ -58,7 +58,7 @@ function isTagStart(str) {
   return /[a-zA-Z]/.test(str)
 }
 
-function isWhitespace(str) {
+export function isWhitespace(str) {
   return str === ' ' || str === '\n' || str === '\t' || str === '\r'
 }
 
@@ -92,6 +92,11 @@ export class Tokenizer {
    */
   buffer = ''
 
+  /**
+   * 保存所有换行符的位置
+   */
+  newLines = []
+
   constructor(public cbs) {}
 
   parse(input) {
@@ -99,6 +104,11 @@ export class Tokenizer {
 
     while (this.index < this.buffer.length) {
       const str = this.buffer[this.index]
+
+      if (str === '\n') {
+        // 保存所有换行符的下标
+        this.newLines.push(this.index)
+      }
 
       /**
        * 状态机
@@ -144,11 +154,31 @@ export class Tokenizer {
           this.stateInAttrValueDq(str)
           break
         }
+        case State.Interpolation: {
+          // 解析插值表达式
+          this.stateInterpolation(str)
+          break
+        }
       }
       this.index++
     }
 
     this.cleanup()
+  }
+
+  stateInterpolation(str) {
+    // {{ msg }}
+    if (str === '}') {
+      // 可能要结束了
+      if (this.buffer[this.index + 1] === '}') {
+        this.index++
+        // 铁定是结束了
+        this.cbs.oninterpolation(this.sectionStart, this.index + 1)
+        // 回归文本
+        this.state = State.Text
+        this.sectionStart = this.index + 1
+      }
+    }
   }
 
   stateInClosingTagName(str) {
@@ -242,6 +272,12 @@ export class Tokenizer {
     }
   }
   stateText(str) {
+    /**
+     * 1. 遇见标签：
+     * <div></div>
+     * 2. 插值表达式：
+     * {{ msg }}
+     */
     if (str === '<') {
       // 证明我要开始解析标签了
       if (this.sectionStart < this.index) {
@@ -252,6 +288,17 @@ export class Tokenizer {
       this.state = State.BeforeTagName
       // 移动开始位置
       this.sectionStart = this.index
+    } else if (str === '{') {
+      // 可能是插值表达式
+      if (this.buffer[this.index + 1] === '{') {
+        if (this.sectionStart < this.index) {
+          // 处理之前的文本内容
+          this.cbs.ontext(this.sectionStart, this.index)
+        }
+        // 切换状态
+        this.state = State.Interpolation
+        this.sectionStart = this.index
+      }
     }
   }
 
@@ -273,9 +320,23 @@ export class Tokenizer {
    */
   getPos(index) {
     // hello world
+
+    let column = index + 1
+    let line = 1
+    // newLines = [5, 15, 22]
+    for (let i = this.newLines.length - 1; i >= 0; i--) {
+      const newLineIndex = this.newLines[i]
+      if (index > newLineIndex) {
+        line = i + 2 // 行数
+        column = index - newLineIndex // 列数
+        // 找到第一个比 index 小的就可以了
+        break
+      }
+    }
+
     return {
-      column: index + 1, // 表示在第几列
-      line: 1, // TODO 暂时不考虑换行
+      column, // 表示在第几列
+      line, // 表示在第几行
       offset: index, // 偏移量
     }
   }
